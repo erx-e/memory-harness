@@ -1,0 +1,107 @@
+{
+  "agent": "leader",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"\nimport json, os, sys\nd = json.load(sys.stdin)\nagent = d.get('agent_type') or 'sesión principal'\npath = os.path.abspath((d.get('tool_input') or {}).get('file_path') or '.')\nfor root in (d.get('cwd'), os.environ.get('CLAUDE_PROJECT_DIR')):\n    if not root:\n        continue\n    try:\n        rel = os.path.relpath(path, root).replace(os.sep, '/')\n        top = rel.split('/')[0]\n    except ValueError:\n        continue\n    if rel == '.claude/state' or rel.startswith('.claude/state/'):\n        print('[harness] Bloqueado: .claude/state/ lo escriben solo los hooks del harness.', file=sys.stderr)\n        sys.exit(2)\n    if top in ('src', 'tests') and agent != 'implementer':\n        print('[harness] Bloqueado: solo el subagente implementer escribe en src/ y tests/ (agente actual: ' + agent + '). Delega el cambio con la herramienta Agent.', file=sys.stderr)\n        sys.exit(2)\n\""
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"import json, os, sys\ntry:\n    d = json.load(sys.stdin)\n    if (d.get('tool_input') or {}).get('subagent_type') != 'reviewer':\n        sys.exit(0)\n    roots = [r for r in (os.environ.get('CLAUDE_PROJECT_DIR'), d.get('cwd')) if r and os.path.isfile(os.path.join(r, 'feature_list.json'))]\n    if not roots:\n        sys.exit(0)\n    root = roots[0]\n    feats = json.load(open(os.path.join(root, 'feature_list.json'), encoding='utf-8')).get('features') or []\n    cur = [f.get('name') for f in feats if isinstance(f, dict) and f.get('status') == 'in_progress']\n    if len(cur) != 1 or not cur[0]:\n        sys.exit(0)\n    name = cur[0]\n    path = os.path.join(root, '.claude', 'state', 'review_rounds.json')\n    try:\n        state = json.load(open(path, encoding='utf-8'))\n        if not isinstance(state, dict):\n            state = {}\n    except Exception:\n        state = {}\n    n = int(state.get(name, 0))\nexcept Exception:\n    sys.exit(0)\nif n >= 3:\n    print('[harness] Límite de 3 rondas de revisión alcanzado para la feature ' + name + '. No lances otro reviewer: para y explica al humano qué hallazgos siguen abiertos, por qué no convergen y qué opciones ves. El contador se reinicia cuando el humano responde.', file=sys.stderr)\n    sys.exit(2)\ntry:\n    state[name] = n + 1\n    os.makedirs(os.path.dirname(path), exist_ok=True)\n    json.dump(state, open(path, 'w', encoding='utf-8'), ensure_ascii=False)\nexcept Exception:\n    pass\nsys.exit(0)\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if command -v graphify >/dev/null 2>&1; then graphify hook-guard search; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if command -v graphify >/dev/null 2>&1; then graphify hook-guard read; fi"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"\nimport json, os, subprocess, sys\nd = json.load(sys.stdin)\npath = os.path.abspath((d.get('tool_input') or {}).get('file_path') or '.')\nfor root in (d.get('cwd'), os.environ.get('CLAUDE_PROJECT_DIR')):\n    if not root:\n        continue\n    try:\n        rel = os.path.relpath(path, root).replace(os.sep, '/')\n    except ValueError:\n        continue\n    if rel.split('/')[0] in ('src', 'tests'):\n        run = subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-q'], cwd=root, capture_output=True, text=True)\n        if run.returncode:\n            print('[harness] Tests en rojo tras editar ' + rel + ':', file=sys.stderr)\n            print(chr(10).join((run.stdout + run.stderr).strip().splitlines()[-15:]), file=sys.stderr)\n            sys.exit(2)\n        break\n\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"\nimport json, os, subprocess, sys\nd = json.load(sys.stdin)\nroots = [r for r in (d.get('cwd'), os.environ.get('CLAUDE_PROJECT_DIR')) if r and os.path.isfile(os.path.join(r, 'init.sh'))]\nif not roots:\n    sys.exit(0)\nrun = subprocess.run(['bash', 'init.sh'], cwd=roots[0], capture_output=True, text=True)\nif not run.returncode:\n    sys.exit(0)\nif d.get('stop_hook_active'):\n    print(json.dumps({'systemMessage': '[harness] init.sh sigue en rojo: la sesión termina sin verificación verde.'}))\n    sys.exit(0)\nprint('[harness] init.sh FALLÓ. Resuélvelo antes de cerrar la sesión:', file=sys.stderr)\nprint(chr(10).join((run.stdout + run.stderr).strip().splitlines()[-20:]), file=sys.stderr)\nsys.exit(2)\n\""
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"import json, os, sys\ntry:\n    d = json.load(sys.stdin)\nexcept Exception:\n    d = {}\nfor r in {os.environ.get('CLAUDE_PROJECT_DIR'), d.get('cwd')}:\n    if r:\n        try:\n            os.remove(os.path.join(r, '.claude', 'state', 'review_rounds.json'))\n        except OSError:\n            pass\nsys.exit(0)\""
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"import json, os, re, subprocess, sys\ntry:\n    d = json.load(sys.stdin)\nexcept Exception:\n    d = {}\nroots = [r for r in (os.environ.get('CLAUDE_PROJECT_DIR'), d.get('cwd')) if r and os.path.isfile(os.path.join(r, 'init.sh'))]\nif not roots:\n    sys.exit(0)\ntry:\n    run = subprocess.run(['bash', 'init.sh', '--status'], cwd=roots[0], capture_output=True, text=True, timeout=40)\nexcept Exception as e:\n    print('[harness] No se pudo generar el estado del proyecto: ' + str(e))\n    sys.exit(0)\nlines = re.sub(chr(27) + r'\\\\[[0-9;]*m', '', run.stdout).splitlines()\nstart = next((i for i, l in enumerate(lines) if 'Estado del trabajo' in l), len(lines))\nproblems = [l for l in lines[:start] if '[FAIL]' in l or '[WARN]' in l]\nprint('== Estado real del proyecto (generado por ./init.sh --status al iniciar la sesión) ==')\nprint('Manda sobre cualquier estado escrito a mano en progress/. No incluye tests ni grafo: para eso ejecuta ./init.sh.')\nprint(chr(10).join(l for l in problems + lines[start:] if l.strip()))\nsys.exit(0)\"",
+            "timeout": 45
+          }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if command -v graphify >/dev/null 2>&1; then graphify hook-guard compact; fi"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(./init.sh)",
+      "Bash(python3 -m unittest*)",
+      "Bash(python3 -m src.cli*)",
+      "Bash(graphify query*)",
+      "Bash(graphify explain*)",
+      "Bash(graphify affected*)",
+      "Bash(graphify path*)",
+      "Bash(graphify god-nodes*)",
+      "Bash(graphify update*)"
+    ]
+  }
+}

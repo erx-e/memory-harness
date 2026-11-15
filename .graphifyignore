@@ -1,0 +1,3 @@
+# Lo que graphify no indexa. Misma sintaxis que .gitignore.
+# Las definiciones de agentes, skills y hooks no describen el proyecto.
+.claude/
