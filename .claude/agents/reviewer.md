@@ -82,6 +82,13 @@ es una UI web.
    preparación para producción) y, además, para cada archivo modificado:
    - ¿Respeta `architecture.md`? (capas, dirección de imports entre
      capas, dependencias, estructura)
+   - ¿Valida donde dice `architecture.md` › Fronteras y validación? Con ese
+     principio juzgas las preguntas de la plantilla sobre errores y casos
+     límite («Proper error handling?», «Edge cases handled?» y «Edge cases
+     covered?»). Si el principio es la disciplina de fronteras, una entrada
+     de fuera sin validar es un hallazgo; una comprobación interna que falta
+     cuando la frontera ya valida no lo es, y una que repite la de la
+     frontera es Menor. La entrada inválida se prueba en la frontera.
    - ¿Respeta `conventions.md`? (estilo, nombres, errores)
    - ¿Tiene su test correspondiente?
 

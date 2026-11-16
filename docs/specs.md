@@ -120,7 +120,10 @@ Captura **antes** de tocar código:
   cada campo. Son los nombres que usarán todas las capas: el `implementer`
   no los inventa ni los renombra. Si la feature no crea ni cambia ninguna
   estructura, se escribe «Sin contratos de datos nuevos»; el punto no se
-  omite.
+  omite. Si la feature añade o cambia una entrada de fuera (argumento,
+  archivo, petición o respuesta de una API externa), el punto dice también
+  en qué frontera se valida y en qué tipo del dominio se convierte, según
+  `docs/architecture.md` › Fronteras y validación.
 - Qué alternativa se descartó y por qué (mínimo una).
 
 NO es ingeniería desde primeros principios — apóyate en
@@ -133,7 +136,7 @@ Regla anti-sobreingeniería (regla dura):
   justificado por al menos un requirement de `requirements.md`: indica
   junto a cada uno los `R<n>` que lo motivan.
 - Todo lo propuesto DEBE respetar los límites de `docs/architecture.md`
-  (capas, dirección de dependencias).
+  (capas, dirección de dependencias, fronteras).
 - Lo que no se pueda ligar a un `R<n>` es una abstracción especulativa y
   se quita del diseño. No se diseña «por si acaso» ni para features
   futuras.

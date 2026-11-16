@@ -38,6 +38,77 @@
 
    Se comprueba leyendo las líneas `import` de cada módulo de `src/`.
 
+7. **Fronteras y validación.** La validación, el estrechamiento de tipos
+   (*type narrowing*) y el manejo de errores van en las fronteras del
+   sistema. Se confía en el código interno sin condiciones. La lógica de
+   negocio vive en funciones puras, y la capa externa (el *shell*: lo que
+   recibe la entrada y llama al resto) es delgada y mecánica. Aplica al
+   escribir validación, manejo de errores o adaptadores de un framework.
+
+   Las fronteras de este proyecto:
+
+   - **Argumentos de la línea de comandos**, en `src/cli.py`. `argparse`
+     comprueba el subcomando, los argumentos obligatorios y los tipos
+     (`type=int`). Lo que no puede comprobar (que `--limit` sea positivo,
+     que `edit` reciba `--title` o `--body`) lo valida el `cmd_<nombre>` que
+     lo recibe, lanzando `NoteError` (ADR-02).
+   - **La variable de entorno `NOTES_FILE`**, que se lee una sola vez, al
+     importar `src/storage.py`.
+   - **El archivo `.notes.json`**, que leen y escriben `storage.load()` y
+     `storage.save()`. Excepción conocida (D2): `storage.load()` devuelve los
+     registros como `list[dict]`, sin validarlos ni convertirlos en `Note`, y
+     esos dicts llegan a los comandos y a `Note.new()`. El arreglo va en un
+     solo punto, junto a la lectura del archivo y sin romper el Principio 6;
+     no se reparte por los comandos.
+   - **La salida al usuario**: `main()`, en `src/cli.py`, traduce cada
+     `NoteError` a un mensaje en `stderr` y código de salida 1.
+
+   **Por qué:** la validación dispersa es ruidosa, redundante y da una falsa
+   sensación de seguridad. Mantener la lógica fuera del cableado del
+   framework permite probarla sin el framework.
+
+   **El patrón:**
+
+   - **En las fronteras** (argumentos de la línea de comandos, archivos de
+     configuración, APIs externas, protocolos de red): se valida, se
+     devuelven errores y se actúa a la defensiva.
+   - **Dentro del sistema:** datos tipados, propagación de errores y ninguna
+     revalidación. Se confía en los tipos. Cómo traduce los errores la capa
+     externa lo fija `docs/example/conventions.md` › Manejo de errores.
+   - **A través de la frontera:** se exponen conceptos del dominio, no la
+     representación privada de la frontera. El mecanismo de propósito
+     general va dentro y la política de propósito específico, en el borde.
+
+   **Aplicaciones:**
+
+   Validación y manejo de errores:
+
+   - La configuración se valida al leerla (en la frontera), no dentro de la
+     lógica de negocio.
+   - Los datos crudos se convierten en tipos del dominio en la frontera.
+   - La interfaz pública no reexporta tipos de transporte, de
+     almacenamiento, del framework ni del formato de transmisión (*wire*).
+   - Si la frontera ya validó, no hay comprobaciones de nulos redundantes en
+     lo profundo de la cadena de llamadas.
+
+   Organización del código:
+
+   - La lógica de negocio va en funciones puras, sin dependencias del
+     framework.
+   - Las funciones de parseo son transformaciones puras de bytes crudos a
+     estado tipado.
+   - Construir un prompt (o cualquier texto generado): entra estado
+     estructurado, sale un string.
+   - Puntuar y evaluar (o cualquier cálculo de resultados): transformaciones
+     puras del estado a los resultados.
+
+   **Las dos preguntas para comprobarlo:**
+
+   - «¿Este dato está cruzando una frontera del sistema ahora mismo?» Si no,
+     validarlo es redundante.
+   - «¿Esto puede ser una función pura a la que la capa externa solo llama?»
+     Si puede, extráela.
+
 ## Stack y dependencias
 
 | Pieza                    | Qué se usa                                              | Dónde            |
