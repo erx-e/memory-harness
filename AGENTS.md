@@ -24,29 +24,40 @@
 
 ## 2. Mapa del repositorio
 
-| Archivo / carpeta            | Qué contiene                                                                | Quién lo lee y cuándo |
-|------------------------------|-----------------------------------------------------------------------------|-----------------------|
-| `feature_list.json`          | Cola de features sin cerrar (`pending` / `spec_ready` / `in_progress` / `blocked`) | El leader, al empezar |
-| `feature_archive.json`       | Features `done`, movidas aquí al cerrarse                                   | Nadie por defecto; lo valida `./init.sh` |
-| `progress/current.md`        | Feature en curso: plan, decisiones de la entrevista, bitácora               | Leader e implementer, al empezar |
-| `progress/history.md`        | Bitácora append-only de features cerradas                                   | Solo si necesitas contexto histórico |
-| `progress/pending.md`        | Decisiones que esperan al usuario (`Q<n>`) y deuda o mejoras (`D<n>`)       | El leader |
-| `specs/<feature>/`           | `requirements.md` + `design.md` + `tasks.md` (Kiro-style)                   | Implementer y reviewer de esa feature |
-| `docs/brief.md`              | Para qué existe el proyecto, para quién y qué NO debe hacer                 | Leader y spec_author, antes de un spec |
-| `docs/architecture.md`       | Qué significa "hacer un buen trabajo" en este proyecto                      | Antes de diseñar, implementar o revisar |
-| `docs/conventions.md`        | Reglas de estilo, nombres, estructura                                       | Antes de escribir o revisar código |
-| `docs/verification.md`       | Cómo verificar que el trabajo funciona y trampas del entorno                | Antes de ejecutar el primer comando |
-| `docs/lessons.md`            | Decisiones, bugs difíciles resueltos y callejones sin salida                | Su índice, antes de proponer un enfoque o de "arreglar" algo raro |
-| `CHECKPOINTS.md`             | Criterios objetivos de "estado final correcto"                              | El reviewer; el leader, C5 al cerrar |
-| `docs/specs.md`              | Proceso SDD: EARS, los 3 archivos, trazabilidad, cuándo no aplica           | Las secciones que cite tu protocolo |
-| `docs/graphify.md`           | Cómo consultar el grafo de contexto: comandos, qué da y qué no              | Si no te bastan los comandos de §3 |
-| `docs/hooks.md`              | Qué hooks se disparan, qué bloquean y cómo reaccionar                       | Solo cuando te frene un mensaje `[harness]`: tu definición ya resume los tuyos |
-| `docs/project-setup.md`      | Preparar el proyecto y retirar el ejemplo                                   | El leader, una vez por proyecto |
-| `docs/ui-review.md`          | Cómo revisar una interfaz web                                               | El reviewer, solo si la feature toca UI |
-| `graphify-out/`              | Grafo, wiki (`wiki/index.md`) e informe (`GRAPH_REPORT.md`) del repositorio | Nunca directamente: se consulta con `graphify` |
-| `.claude/agents/`            | Definiciones de `leader`, `spec_author`, `implementer` y `reviewer`         | Cada agente recibe la suya; no leas las demás |
-| `src/`, `tests/`             | Código de la aplicación y tests automáticos                                 | Para implementar y verificar |
-| `docs/example/`, `specs/example/`, `progress/example/` | Lo del proyecto de muestra: sus docs, specs, informes, bitácora y pendientes | Solo en features con `"example": true` |
+La columna «Memoria» clasifica cada archivo. **Inmediata**: los agentes la
+leen en el flujo normal de una feature. **Largo plazo**: nadie la lee por
+defecto; es **histórica** si guarda lo ya hecho y **de consulta** si es un
+procedimiento o una guía de uso puntual. El spec y los informes de una
+feature son memoria inmediata mientras está abierta y pasan al largo plazo
+al cerrarla, sin moverse de su carpeta.
+
+| Archivo / carpeta            | Qué contiene                                                                | Quién lo lee y cuándo | Memoria |
+|------------------------------|-----------------------------------------------------------------------------|-----------------------|---------|
+| `feature_list.json`          | La cola sin cerrar y hasta 20 features cerradas recientes | El leader, al empezar | Inmediata |
+| `feature_archive.json`       | Las features cerradas más antiguas                                          | Nadie por defecto; lo valida `./init.sh` | Largo plazo, histórica |
+| `progress/current.md`        | Feature en curso: plan, decisiones de la entrevista, bitácora               | Leader e implementer, al empezar | Inmediata |
+| `progress/history.md`        | Bitácora append-only de features cerradas                                   | Solo si necesitas contexto histórico | Largo plazo, histórica |
+| `progress/pending.md`        | Decisiones que esperan al usuario (`Q<n>`) y deuda o mejoras (`D<n>`)       | El leader | Inmediata |
+| `specs/<feature>/`           | `requirements.md` + `design.md` + `tasks.md` (Kiro-style)                   | Implementer y reviewer de esa feature | Inmediata con la feature abierta; histórica al cerrarla |
+| `progress/impl_<feature>.md`, `progress/review_<feature>.md` | Informes del implementer y del reviewer de esa feature | El leader y el reviewer; el implementer, si lo relanzan | Inmediata con la feature abierta; histórica al cerrarla |
+| `docs/brief.md`              | Para qué existe el proyecto, para quién y qué NO debe hacer                 | Leader y spec_author, antes de un spec | Inmediata |
+| `docs/architecture.md`       | Qué significa "hacer un buen trabajo" en este proyecto                      | Antes de diseñar, implementar o revisar | Inmediata |
+| `docs/conventions.md`        | Reglas de estilo, nombres, estructura                                       | Antes de escribir o revisar código | Inmediata |
+| `docs/verification.md`       | Cómo verificar que el trabajo funciona y trampas del entorno                | Antes de ejecutar el primer comando | Inmediata |
+| `docs/lessons.md`            | Hasta 20 lecciones activas (decisiones, bugs y callejones sin salida), con tags | Su índice, antes de proponer un enfoque o de "arreglar" algo raro | Inmediata |
+| `docs/lessons-archive.md`    | Las lecciones menos usadas, archivadas                                      | Nadie por defecto | Largo plazo, histórica |
+| `docs/tags.md`               | Vocabulario cerrado de tags de features y lecciones                         | El leader, al poner tags | Inmediata |
+| `CHECKPOINTS.md`             | Criterios objetivos de "estado final correcto"                              | El reviewer; el leader, C5 al cerrar | Inmediata |
+| `docs/specs.md`              | Proceso SDD: EARS, los 3 archivos, trazabilidad, cuándo no aplica           | Las secciones que cite tu protocolo | Inmediata |
+| `docs/graphify.md`           | Cómo consultar el grafo de contexto: comandos, qué da y qué no              | Si no te bastan los comandos de §3 | Largo plazo, de consulta |
+| `docs/hooks.md`              | Qué hooks se disparan, qué bloquean y cómo reaccionar                       | Solo cuando te frene un mensaje `[harness]`: tu definición ya resume los tuyos | Largo plazo, de consulta |
+| `docs/project-setup.md`      | Preparar el proyecto y retirar el ejemplo                                   | El leader, una vez por proyecto | Largo plazo, de consulta |
+| `docs/ui-review.md`          | Cómo revisar una interfaz web                                               | El reviewer, solo si la feature toca UI | Largo plazo, de consulta |
+| `graphify-out/`              | Grafo, wiki (`wiki/index.md`) e informe (`GRAPH_REPORT.md`) del repositorio | Nunca directamente: se consulta con `graphify` | — (herramienta de búsqueda) |
+| `memory.sh`                  | Consulta la memoria por tags e ids: qué entradas conectan y dónde leerlas    | En los pasos que marca cada protocolo | — (herramienta de búsqueda) |
+| `.claude/agents/`            | Definiciones de `leader`, `spec_author`, `implementer` y `reviewer`         | Cada agente recibe la suya; no leas las demás | Inmediata (cada agente, la suya) |
+| `src/`, `tests/`             | Código de la aplicación y tests automáticos                                 | Para implementar y verificar | — (el proyecto en sí) |
+| `docs/example/`, `specs/example/`, `progress/example/` | Lo del proyecto de muestra: sus docs, specs, informes, bitácora y pendientes | Solo en features con `"example": true` | Largo plazo, de consulta (inmediata en una feature de ejemplo) |
 
 ## 3. Reglas comunes (no negociables)
 
@@ -57,7 +68,11 @@
   `feature_list.json` ni lanza a otro agente.
 - **Docs del proyecto.** Las reglas del proyecto son `docs/brief.md`,
   `docs/architecture.md`, `docs/conventions.md`, `docs/verification.md`,
-  `docs/lessons.md` y C3-C4 de `CHECKPOINTS.md`.
+  `docs/lessons.md`, `docs/tags.md` y C3-C4 de `CHECKPOINTS.md`.
+- **Cómo se cita una feature.** Como `F-<id>`, con el número de su campo
+  `id` (`F-12`); añade su `name` si ayuda: `F-12 (export_csv)`. Así la
+  citan las lecciones («Origen»), el historial, los informes y los
+  mensajes, y una sola búsqueda la encuentra en todos.
 - **Features de ejemplo.** Si tu feature lleva `"example": true`, todo lo
   suyo vive en la subcarpeta `example/` de cada área y no lees ni escribes
   lo del proyecto: sus docs son los gemelos de `docs/example/` (C3-C4 en
@@ -91,6 +106,12 @@
   o `graphify query "<palabras clave>"` y lee solo las líneas que indique. No
   recorras archivos enteros para orientarte. Si graphify no está instalado,
   esta regla no aplica.
+- **Consulta la memoria con `./memory.sh`.** La memoria de largo plazo no se
+  lee entera. `./memory.sh F-<id>` da lo conectado con una feature por sus
+  tags y sus ids; también acepta tags (`./memory.sh <tag>...`), una lección
+  (`./memory.sh ADR-<n>`) o `tags`, para ver la lista. Devuelve dónde leer
+  cada entrada: abre solo lo que te sirva y cita por su id lo que uses.
+  Cuándo usarlo lo dice tu definición.
 
 ## 4. Flujo de trabajo (SDD)
 

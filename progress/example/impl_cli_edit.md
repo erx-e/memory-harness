@@ -1,12 +1,12 @@
 # Implementación — cli_edit
 
-> **Ejemplo.** Informe del implementer de la feature #6 del proyecto de
+> **Ejemplo.** Informe del implementer de la feature F-6 del proyecto de
 > muestra (CLI de notas), anterior a SDD: no tiene spec, así que la
 > trazabilidad y las tasks no aplican. Muestra cómo queda un informe sin
 > spec con la estructura de `.claude/agents/implementer.md`. Se retira con
 > el resto del ejemplo (`docs/project-setup.md`).
 
-> Feature #6. Resumen de la implementación.
+> F-6. Resumen de la implementación.
 
 ## Resumen de cambios
 

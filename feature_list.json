@@ -8,13 +8,16 @@
     "valid_status": ["pending", "spec_ready", "in_progress", "done", "blocked"],
     "sdd_required_when": "feature has \"sdd\": true",
     "example_features": "features with \"example\": true belong to the sample project; the leader removes them before the first real feature when the real project already has code or is not Python, otherwise after closing the first real feature",
-    "archive": "this file is the queue: when a feature is closed, the leader moves its entry to feature_archive.json with status done; ids are never reused across both files"
+    "memory": "this file is the immediate memory of features: the queue plus up to 20 closed features (status done, with their \"closed\" date); when there are more than 20 closed, the leader moves the oldest to feature_archive.json, the long-term memory, and they never come back; ids are never reused across both files",
+    "tags": "every feature carries 1 to 4 tags from docs/tags.md (docs/example/tags.md for example features) once it leaves pending",
+    "citation": "a feature is cited as F-<id> (e.g. F-12), with the number of its id field"
   },
   "features": [
     {
       "id": 8,
       "name": "cli_count",
       "title": "Comando count",
+      "tags": ["cli"],
       "description": "Muestra cuántas notas hay almacenadas.",
       "acceptance": [
         "`python -m src.cli count` imprime un entero único: el número total de notas",
@@ -30,6 +33,7 @@
       "id": 9,
       "name": "cli_export",
       "title": "Comando export a Markdown",
+      "tags": ["cli", "exportacion", "validacion"],
       "description": "Exporta todas las notas a un archivo Markdown legible por humanos.",
       "acceptance": [
         "`python -m src.cli export <ruta>` escribe todas las notas en `<ruta>` con formato Markdown",
@@ -47,6 +51,7 @@
       "id": 10,
       "name": "cli_stats",
       "title": "Comando stats",
+      "tags": ["cli", "fechas"],
       "description": "Muestra estadísticas agregadas sobre las notas almacenadas.",
       "acceptance": [
         "`python -m src.cli stats` imprime: número total de notas, fecha de la nota más antigua, fecha de la nota más reciente, longitud media del cuerpo (entero, en caracteres)",
@@ -63,6 +68,7 @@
       "id": 11,
       "name": "cli_clear",
       "title": "Comando clear (destructivo)",
+      "tags": ["cli", "persistencia", "validacion"],
       "description": "Elimina todas las notas del archivo. Requiere confirmación explícita vía flag.",
       "acceptance": [
         "`python -m src.cli clear` SIN `--yes` imprime un mensaje pidiendo confirmación, NO borra nada y sale con exit code != 0",

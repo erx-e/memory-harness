@@ -32,7 +32,7 @@ el leader te pasa en el prompt, siguiendo su spec ya aprobado en
    | `architecture.md` | Entero | Dónde va cada cosa y qué no se puede romper |
    | `conventions.md`  | Entero | Estilo, nombres, tests y errores |
    | `verification.md` | Entero, antes de ejecutar el primer comando | Qué tests exige cada feature, qué no cuenta como verificación y, en "Trampas del entorno", cómo hay que lanzar los comandos |
-   | `lessons.md`      | «Índice» y «Callejones sin salida»; las entradas cuya fila toque lo que vas a cambiar | Si algo del código parece raro o roto, puede estar así por una razón, o el arreglo obvio ya se intentó y no funcionó |
+   | `lessons.md`      | «Índice» y «Callejones sin salida»; las entradas cuya fila comparta tags con tu feature o toque lo que vas a cambiar | Si algo del código parece raro o roto, puede estar así por una razón, o el arreglo obvio ya se intentó y no funcionó |
 
    No leas `docs/specs.md`: lo que necesitas del proceso está en este
    archivo.
@@ -74,7 +74,7 @@ informe.
 ````markdown
 # Implementación — <name>
 
-> Feature #<id>. Resumen de la implementación y trazabilidad `R<n> → test`.
+> F-<id>. Resumen de la implementación y trazabilidad `R<n> → test`.
 
 ## Resumen de cambios
 
@@ -162,6 +162,10 @@ esto no basta.
   — pide cambios al spec primero.
 - ✅ Toda escritura de código va acompañada de su test antes de pasar a
   la siguiente task.
+- ✅ Si algo del código te parece raro o un bug se te resiste, antes de
+  improvisar consulta `./memory.sh F-<id>`: puede que una feature o una
+  lección, activa o archivada, ya lo explique. Si te apoyas en algo de ahí,
+  cítalo por su id en tu informe.
 - ✅ Si una herramienta falla de manera inesperada, NO improvises un
   workaround. Para, anota el bloqueo en `progress/current.md` y termina con
   `blocked`.

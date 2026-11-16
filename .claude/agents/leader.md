@@ -17,9 +17,10 @@ llevan la subcarpeta `example/` (`AGENTS.md` §3 «Features de ejemplo»).
 ## Protocolo de arranque (al recibir la primera tarea)
 
 1. Lee `feature_list.json`, `progress/current.md` y `progress/pending.md`.
-   `AGENTS.md` ya está en tu contexto: no lo leas. `feature_list.json` es
-   solo la cola; las features cerradas están en `feature_archive.json` y no
-   necesitas abrirlo.
+   `AGENTS.md` ya está en tu contexto: no lo leas. `feature_list.json` es la
+   memoria inmediata de features: la cola y hasta 20 cerradas recientes. Las
+   más antiguas están en `feature_archive.json`, la memoria de largo plazo, y
+   no necesitas abrirlo.
 2. Ejecuta `./init.sh`. Si falla, paras y reportas. Su sección "Estado del
    trabajo" es el estado real: si contradice algo escrito en `progress/`,
    manda `./init.sh`. Al iniciar la sesión ya recibiste ese estado en versión
@@ -43,7 +44,8 @@ más abajo.
 
 ## Cómo descomponer la tarea «implementa la siguiente feature pendiente»
 
-Mira el status de la primera feature no-`blocked` de `feature_list.json`. Si
+Mira el status de la primera feature de `feature_list.json` que no esté
+`done` ni `blocked`. Si
 existe alguna feature sin `"example": true`, ignora las de ejemplo: el
 proyecto real va primero. Solo si todas las pendientes son de ejemplo
 trabajas sobre ellas, como demostración del flujo.
@@ -109,7 +111,8 @@ decide que una feature lo es: si un cambio te lo parece, propónselo; sin su
    esta sesión, confírmala con él antes de seguir.
 2. Si la feature no es de ejemplo, comprueba que el proyecto está preparado,
    igual que en el paso 0 del Caso A.
-3. Cambia el status a `in_progress` y lanza **1 `implementer`** indicándole
+3. Ponle de 1 a 4 tags de `docs/tags.md`, cambia el status a `in_progress`
+   y lanza **1 `implementer`** indicándole
    que es una feature trivial sin spec: su entrada es la `description` y el
    `acceptance` que le copias en el prompt.
 4. Cuando termine → lanza **1 `reviewer`** y sigue "Cierre de una feature".
@@ -142,8 +145,11 @@ decirlo expresamente. Nunca la saltas tú.
 - **Relevante**, o si no acepta que sea trivial: se añade con `"sdd": true`
   y entra por el Caso A, con entrevista.
 
-El id de una feature nueva es el «Siguiente id libre» que imprime
-`./init.sh`: cuenta también las archivadas, y los ids no se reutilizan.
+El `id` de una feature nueva es el número del «Siguiente id libre» que
+imprime `./init.sh` (`F-12` → `"id": 12`): cuenta también las archivadas,
+y los ids no se reutilizan. Antes de añadirla, mira con
+`./memory.sh <tags candidatos>` si ya hay algo parecido, activo o archivado;
+si lo hay, díselo al humano.
 
 **Técnica.** Es la de la skill `grilling` de mattpocock/skills, incluida en
 el proyecto en `.claude/skills/grilling/` junto con su atajo `grill-me`.
@@ -158,8 +164,10 @@ con estas adaptaciones:
   queda fuera y cómo sabrá el humano que funciona.
 - **Hechos y decisiones**: lo que se puede averiguar (qué hay en el código,
   qué usa qué) lo averiguas tú, primero con el grafo (ver "Grafo de
-  contexto") y, si no basta, con un `Explore`. Al humano solo le preguntas
-  lo que tiene que decidir él.
+  contexto") y, si no basta, con un `Explore`. Lo que ya se decidió en
+  features pasadas lo buscas con `./memory.sh` (por los tags candidatos, o
+  por `F-<id>` si la feature ya los tiene). Al humano solo le preguntas lo
+  que tiene que decidir él.
 - **Formato**: en castellano y por rondas, con tu recomendación en cada
   pregunta, como indica la skill. Numera las preguntas `P1`, `P2`… para no
   confundirlas con los `Q<n>` de `progress/pending.md`.
@@ -169,22 +177,30 @@ con estas adaptaciones:
   docs ya responden a todo, no te inventes preguntas. Díselo al humano,
   resume en un solo mensaje lo que entiendes que se va a hacer y pide que
   lo confirme.
+- **Tags**: propón de 1 a 4 tags de `docs/tags.md` que digan de qué trata
+  la feature, como una pregunta más con tu recomendación (`./memory.sh tags`
+  te dice cuáles hay y cuánto se usa cada uno). Si ninguno encaja, propón
+  uno nuevo con la línea que lo define.
 - **Cierre**: cuando ya no queden preguntas, resume lo acordado y pide al
   humano que confirme que es eso. Si alguna decisión que cambia lo que hace
   la feature sigue abierta, no cierres: que la decida él, que acepte tu
   recomendación o que la deje fuera de alcance.
 
-Con la confirmación, añade a `progress/current.md` esta sección. Es la
-entrada del `spec_author`, igual que "Cambios pedidos por el usuario" lo es
-del `implementer`:
+Con la confirmación, escribe los tags en la entrada de la feature (`"tags"`)
+y los nuevos en `docs/tags.md`, y añade a `progress/current.md` esta
+sección. Es la entrada del `spec_author`, igual que "Cambios pedidos por el
+usuario" lo es del `implementer`:
 
 ```markdown
-## Decisiones de la entrevista — feature <id> (<name>)
+## Decisiones de la entrevista — F-<id> (<name>)
 
 **Confirmadas por el usuario:** sí, AAAA-MM-DD
 
 ### Objetivo
 <qué resuelve y para quién, con las palabras del humano>
+
+### Tags
+`<tag>`, `<tag>` (de `docs/tags.md`; los nuevos, ya añadidos al registro)
 
 ### Decisiones
 1. <tema>: <lo decidido> (<decidido por el humano | recomendación aceptada>)
@@ -197,8 +213,8 @@ del `implementer`:
 ```
 
 Si el humano se salta la entrevista, la sección lleva solo el título y la
-línea `**Entrevista omitida por el usuario:** AAAA-MM-DD`. Entonces el
-`spec_author` trabaja solo con el `acceptance`. La sección se vacía con el
+línea `**Entrevista omitida por el usuario:** AAAA-MM-DD`, y los tags los
+eliges tú. Entonces el `spec_author` trabaja solo con el `acceptance`. La sección se vacía con el
 resto de `progress/current.md` al cerrar la feature: para entonces lo
 decidido ya está en el spec aprobado.
 
@@ -221,7 +237,7 @@ herramienta `Agent`:
 `feature_list.json`: lo que no le pases, no lo sabe o lo tiene que buscar.
 
 - La entrada de la feature, copiada tal cual de `feature_list.json` (`id`,
-  `name`, `status`, `sdd`, `example`, `description` y `acceptance`).
+  `name`, `status`, `sdd`, `example`, `tags`, `description` y `acceptance`).
 - Las rutas de la feature: sus docs, su spec y sus informes. Si lleva
   `"example": true`, son `docs/example/`, `specs/example/<name>/` y
   `progress/example/`.
@@ -260,20 +276,43 @@ día. Los comandos básicos están en `AGENTS.md` §3; el resto, en
 
 ## Memoria del proyecto
 
-Tres archivos guardan lo que debe sobrevivir a una feature y a una sesión.
+Estos archivos guardan lo que debe sobrevivir a una feature y a una sesión.
 Los escribes tú; los demás agentes solo los leen.
 
-| Archivo               | Qué guarda                                                        | Cuándo lo escribes |
-|-----------------------|-------------------------------------------------------------------|--------------------|
-| `docs/brief.md`       | Para qué existe el proyecto, para quién y qué NO debe hacer        | Antes de la primera feature real, y si el humano cambia el rumbo |
-| `docs/lessons.md`     | Decisiones, bugs difíciles resueltos y callejones sin salida       | Al cerrar una feature, si enseñó algo que sirve más allá de ella |
-| `progress/pending.md` | Decisiones que esperan al humano (`Q<n>`) y deuda o mejoras (`D<n>`) | Al cerrar una feature y cada vez que surge o se resuelve una |
+| Archivo                   | Qué guarda                                                        | Cuándo lo escribes |
+|---------------------------|-------------------------------------------------------------------|--------------------|
+| `docs/brief.md`           | Para qué existe el proyecto, para quién y qué NO debe hacer        | Antes de la primera feature real, y si el humano cambia el rumbo |
+| `docs/lessons.md`         | Hasta 20 lecciones activas: decisiones, bugs difíciles y callejones sin salida, con tags | Al cerrar una feature, si enseñó algo que sirve más allá de ella |
+| `docs/lessons-archive.md` | Las lecciones archivadas, con su id y sus tags                    | Al cerrar una feature, si `docs/lessons.md` pasa de 20 |
+| `docs/tags.md`            | El vocabulario cerrado de tags                                    | Al preparar el proyecto, y cuando una feature o una lección necesita un tag nuevo |
+| `progress/pending.md`     | Decisiones que esperan al humano (`Q<n>`) y deuda o mejoras (`D<n>`) | Al cerrar una feature y cada vez que surge o se resuelve una |
 
+Las features y las lecciones tienen dos memorias. La **inmediata** es la que
+leen los agentes: `feature_list.json` (la cola y hasta 20 features cerradas)
+y `docs/lessons.md` (hasta 20 lecciones). La **de largo plazo**,
+`feature_archive.json` y `docs/lessons-archive.md`, no la lee nadie por
+defecto. Lo archivado no vuelve a la inmediata, pero no se borra. Los
+demás archivos los clasifica la columna «Memoria» del mapa de `AGENTS.md`.
+
+- **Umbral de 20.** Al cerrar una feature, si hay más de 20 features
+  cerradas en `feature_list.json`, mueve las más antiguas a
+  `feature_archive.json`; si hay más de 20 lecciones, mueve a
+  `docs/lessons-archive.md` las menos usadas, con su fila del índice. No
+  pides permiso: archivar no es borrar. `./init.sh` falla mientras sobre
+  alguna y te dice cuáles mover.
+- **Tags.** Toda feature, en cuanto deja `pending`, y toda lección llevan
+  de 1 a 4 tags de `docs/tags.md` (en el ejemplo, de `docs/example/tags.md`).
+  Los propones tú: los de la feature, en la entrevista; los de una lección,
+  al registrarla. Si ninguno encaja, añade uno nuevo al registro en el mismo
+  cambio, sin crear sinónimos de otro. Un tag no se renombra ni se borra
+  mientras lo use alguna entrada, activa o archivada.
+- **La memoria de largo plazo se consulta con `./memory.sh`**, nunca leyendo
+  enteros `feature_archive.json` ni `docs/lessons-archive.md`. El inicio de
+  sesión no la trae: se consulta en los pasos que marcan los protocolos (el
+  alta de una feature, la entrevista, el spec y la revisión).
 - **`docs/lessons.md` se lee por su índice.** Los agentes leen solo «Índice»
   y «Callejones sin salida», así que una entrada sin su fila en el índice no
-  existe para ellos: añade las dos en el mismo cambio. Si `./init.sh` avisa
-  de que el archivo supera su tope, propón al humano qué entradas pasar a
-  `docs/lessons-archive.md`.
+  existe para ellos: añade las dos en el mismo cambio.
 - **Hecho es fuera.** Cuando el humano toma una decisión `Q<n>`, o una deuda
   `D<n>` se descarta o se convierte en feature (la añades a
   `feature_list.json` con `"sdd": true`, salvo que el humano diga que es
@@ -353,9 +392,11 @@ feature hasta él y la cierras cuando aprueba:
   Resume solo lo que dicen esos informes; no añadas afirmaciones que no
   estén en ellos. Termina el mensaje con:
   > "Di **'aprobado'** para cerrar la feature, o pídeme cambios."
-- El humano dice **'aprobado'** → mueve la entrada de la feature de
-  `feature_list.json` a la lista `features` de `feature_archive.json`, con
-  `status: "done"`: la cola solo contiene features sin cerrar. Añade el
+- El humano dice **'aprobado'** → en `feature_list.json`, pon su `status` a
+  `"done"` y añade `"closed": "AAAA-MM-DD"`, sin sacarla de ahí: las
+  cerradas recientes son memoria inmediata. Si con ella hay más de 20
+  cerradas, mueve las más antiguas (por `closed`; a igual fecha, la de id
+  menor) a la lista `features` de `feature_archive.json`. Añade el
   resumen al final de `progress/history.md` con la línea
   `- **Aprobación del usuario:** sí, AAAA-MM-DD` (`./init.sh` falla sin
   ella en las features que no son del ejemplo). Después registra lo que
@@ -366,8 +407,10 @@ feature hasta él y la cierras cuando aprueba:
     descartado; y una `Q<n>` por cada decisión que quedó sin tomar.
   - En `docs/lessons.md`, lo que sirva a features futuras: decisiones de
     `specs/<name>/design.md` que afectan a más de una feature, y los bugs
-    difíciles y enfoques descartados de la sección "Lecciones" de
-    `progress/impl_<name>.md`. Si la feature no enseñó nada, no escribas
+    difíciles y enfoques descartados (callejones sin salida) de la sección
+    "Lecciones" de `progress/impl_<name>.md`, cada uno con su fila y sus
+    tags en el índice. Si pasas de 20 lecciones, archiva las menos usadas
+    ("Memoria del proyecto"). Si la feature no enseñó nada, no escribas
     nada.
 
   Por último deja `progress/current.md` en su plantilla, ejecuta `./init.sh`

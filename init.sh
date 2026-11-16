@@ -46,7 +46,7 @@ ok "Versión de Python compatible"
 echo ""
 echo "── 2. Verificando archivos base del arnés ──────────────"
 
-for f in AGENTS.md feature_list.json progress/current.md progress/pending.md docs/brief.md docs/architecture.md docs/conventions.md docs/verification.md docs/lessons.md CHECKPOINTS.md; do
+for f in AGENTS.md memory.sh feature_list.json progress/current.md progress/pending.md docs/brief.md docs/architecture.md docs/conventions.md docs/verification.md docs/lessons.md docs/tags.md CHECKPOINTS.md; do
   if [ ! -f "$f" ]; then
     fail "Falta archivo base: $f"
     EXIT_CODE=1
@@ -55,11 +55,22 @@ for f in AGENTS.md feature_list.json progress/current.md progress/pending.md doc
   fi
 done
 
+# memory.sh es como los agentes consultan la memoria: si no responde con los
+# archivos actuales, ningún protocolo puede seguir sus pasos de consulta.
+if [ -f memory.sh ]; then
+  if bash memory.sh tags >/dev/null 2>&1 && bash memory.sh tags --ejemplo >/dev/null 2>&1; then
+    ok "memory.sh responde"
+  else
+    fail "memory.sh no responde: ejecuta ./memory.sh tags (y con --ejemplo) para ver el error"
+    EXIT_CODE=1
+  fi
+fi
+
 echo ""
 echo "── 3. Validando feature_list.json y specs ─────────────"
 
 python3 - <<'PY'
-import json, os, re, sys
+import glob, json, os, re, sys
 try:
     data = json.load(open("feature_list.json", encoding="utf-8"))
     # feature_list.json es la cola: al cerrarse, una feature pasa a
@@ -76,12 +87,12 @@ try:
     not_done = [f for f in archive if f["status"] != "done"]
     if not_done:
         f = not_done[0]
-        print(f"[FAIL]  feature {f['id']} ({f['name']}) está en feature_archive.json con estado {f['status']}: ahí solo van las done")
+        print(f"[FAIL]  F-{f['id']} ({f['name']}) está en feature_archive.json con estado {f['status']}: ahí solo van las done")
         sys.exit(1)
     ids = [f["id"] for f in features]
     repeated = sorted({i for i in ids if ids.count(i) > 1})
     if repeated:
-        print(f"[FAIL]  Ids de feature repetidos entre feature_list.json y feature_archive.json: {repeated}")
+        print(f"[FAIL]  Ids de feature repetidos entre feature_list.json y feature_archive.json: {', '.join(f'F-{i}' for i in repeated)}")
         sys.exit(1)
     in_progress = [f for f in features if f["status"] == "in_progress"]
     if len(in_progress) > 1:
@@ -91,14 +102,14 @@ try:
     spec_errors = []
     for f in features:
         if f["status"] not in valid:
-            print(f"[FAIL]  Estado inválido en feature {f['id']}: {f['status']}")
+            print(f"[FAIL]  Estado inválido en F-{f['id']}: {f['status']}")
             sys.exit(1)
         if f.get("sdd") and f["status"] in requires_spec:
             spec_dir = os.path.join(area(f, "specs"), f["name"])
             for fname in ("requirements.md", "design.md", "tasks.md"):
                 if not os.path.isfile(os.path.join(spec_dir, fname)):
                     spec_errors.append(
-                        f"feature {f['id']} ({f['name']}) en {f['status']} "
+                        f"F-{f['id']} ({f['name']}) en {f['status']} "
                         f"sin {spec_dir}/{fname}"
                     )
     if spec_errors:
@@ -114,10 +125,10 @@ try:
             continue
         review = os.path.join(area(f, "progress"), f"review_{f['name']}.md")
         if not os.path.isfile(review):
-            review_errors.append(f"feature {f['id']} ({f['name']}) en done sin {review}")
+            review_errors.append(f"F-{f['id']} ({f['name']}) en done sin {review}")
         elif not approved.search(open(review, encoding="utf-8").read()):
             review_errors.append(
-                f"feature {f['id']} ({f['name']}) en done sin veredicto APPROVED en {review}"
+                f"F-{f['id']} ({f['name']}) en done sin veredicto APPROVED en {review}"
             )
     if review_errors:
         for e in review_errors:
@@ -140,15 +151,127 @@ try:
         mine = [e for e in entries if heading.match(e)]
         if not mine:
             approval_errors.append(
-                f"feature {f['id']} ({f['name']}) en done sin entrada en progress/history.md"
+                f"F-{f['id']} ({f['name']}) en done sin entrada en progress/history.md"
             )
         elif not any(user_ok.search(e) for e in mine):
             approval_errors.append(
-                f"feature {f['id']} ({f['name']}) en done sin '- **Aprobación del usuario:** sí' "
+                f"F-{f['id']} ({f['name']}) en done sin '- **Aprobación del usuario:** sí' "
                 f"en su entrada de progress/history.md"
             )
     if approval_errors:
         for e in approval_errors:
+            print(f"[FAIL]  {e}")
+        sys.exit(1)
+    # Memoria inmediata y de largo plazo. Las features cerradas se quedan en
+    # feature_list.json hasta que hay más de THRESHOLD; entonces las más
+    # antiguas pasan a feature_archive.json. Las lecciones de docs/lessons.md
+    # pasan a docs/lessons-archive.md empezando por las menos usadas. Los tags
+    # conectan las entradas de las dos memorias y solo valen los registrados.
+    THRESHOLD = 20
+    tag_re = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    date_re = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+    lesson_id = r"(?:ADR|Bug|CS)-\d+"
+    def docs_dir(example):
+        return os.path.join("docs", "example") if example else "docs"
+    def read_text(path, strip_code=False):
+        try:
+            text = open(path, encoding="utf-8").read()
+        except OSError:
+            return None
+        return re.sub(r"^```.*?^```", "", text, flags=re.M | re.S) if strip_code else text
+    def registry(example):
+        path = os.path.join(docs_dir(example), "tags.md")
+        text = read_text(path, strip_code=True) or ""
+        return path, {t for t in re.findall(r"^\|\s*`([^`]+)`\s*\|", text, flags=re.M) if tag_re.match(t)}
+    registries = {example: registry(example) for example in (False, True)}
+    def tag_errors(tags, owner, example):
+        path, known = registries[example]
+        if not isinstance(tags, list) or not 1 <= len(tags) <= 4:
+            return [f"{owner} debe llevar entre 1 y 4 tags de {path}"]
+        errors = []
+        for t in tags:
+            if not isinstance(t, str) or not tag_re.match(t):
+                errors.append(f"{owner}: el tag {t!r} no sigue el formato (minúsculas, sin tildes, palabras unidas con guiones)")
+            elif t not in known:
+                errors.append(f"{owner}: el tag '{t}' no está en {path}")
+        return errors
+    def lessons(path):
+        """Las entradas (id → texto) y el índice (id → tags) de un archivo de lecciones."""
+        text = read_text(path, strip_code=True)
+        if text is None:
+            return None
+        entries = {}
+        for block in re.split(r"^(?=#### )", text, flags=re.M):
+            m = re.match(rf"#### ({lesson_id})\b", block)
+            if m:
+                entries[m.group(1)] = block
+        index, header = {}, None
+        for line in text.splitlines():
+            if not line.lstrip().startswith("|"):
+                header = None
+                continue
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if header is None:
+                header = [c.lower() for c in cells]
+            elif not re.fullmatch(r"[\s|:-]+", line):
+                row = dict(zip(header, cells))
+                if re.fullmatch(lesson_id, row.get("id", "")):
+                    index[row["id"]] = re.findall(r"`([^`]+)`", row.get("tags", ""))
+        return entries, index
+    memory_errors = []
+    for f in features:
+        if "tags" in f or f["status"] in requires_spec:
+            memory_errors += tag_errors(f.get("tags"), f"F-{f['id']} ({f['name']})", bool(f.get("example")))
+        if "closed" in f and not date_re.match(str(f["closed"])):
+            memory_errors.append(f"F-{f['id']} ({f['name']}): 'closed' debe ser una fecha AAAA-MM-DD")
+    for example in (False, True):
+        closed = [f for f in data["features"] if f["status"] == "done" and bool(f.get("example")) == example]
+        memory_errors += [
+            f"F-{f['id']} ({f['name']}) está done en feature_list.json sin su fecha 'closed'"
+            for f in closed if "closed" not in f
+        ]
+        if len(closed) > THRESHOLD:
+            oldest = sorted(closed, key=lambda f: (str(f.get("closed", "")), f["id"]))[: len(closed) - THRESHOLD]
+            memory_errors.append(
+                f"feature_list.json tiene {len(closed)} features cerradas (tope {THRESHOLD}): pasa a "
+                "feature_archive.json las más antiguas: " + ", ".join(f"F-{f['id']} {f['name']}" for f in oldest)
+            )
+        active = os.path.join(docs_dir(example), "lessons.md")
+        archived = os.path.join(docs_dir(example), "lessons-archive.md")
+        parsed = {path: lessons(path) for path in (active, archived)}
+        for path, found in parsed.items():
+            entries, index = found or ({}, {})
+            for lid in entries:
+                if lid not in index:
+                    memory_errors.append(f"{path}: {lid} no tiene fila en el índice, así que no tiene tags")
+                else:
+                    memory_errors += tag_errors(index[lid], f"{path} › {lid}", example)
+        entries = (parsed[active] or ({}, {}))[0]
+        if len(entries) <= THRESHOLD:
+            continue
+        # Último uso de una lección: la feature de id más alto que la cita en su
+        # spec o en sus informes, o la de su «Origen». Se archivan primero las
+        # de último uso más antiguo.
+        texts = {}
+        for f in features:
+            if bool(f.get("example")) != example:
+                continue
+            paths = glob.glob(os.path.join(area(f, "specs"), f["name"], "*.md"))
+            paths += [os.path.join(area(f, "progress"), f"{kind}_{f['name']}.md") for kind in ("spec", "impl", "review")]
+            texts[f["id"]] = "\n".join(t for t in map(read_text, paths) if t)
+        def last_use(lid):
+            uses = [int(n) for n in re.findall(r"\*\*Origen:\*\*\s*(?:feature\s+#?|F-)(\d+)", entries[lid])[:1]]
+            uses += [fid for fid, text in texts.items() if re.search(rf"\b{re.escape(lid)}\b", text)]
+            return max(uses, default=0)
+        use = {lid: last_use(lid) for lid in entries}
+        order = list(entries)
+        surplus = sorted(order, key=lambda lid: (use[lid], order.index(lid)))[: len(entries) - THRESHOLD]
+        memory_errors.append(
+            f"{active} tiene {len(entries)} lecciones (tope {THRESHOLD}): pasa a {archived} las menos usadas: "
+            + ", ".join(f"{lid} (último uso: " + (f"F-{use[lid]}" if use[lid] else "ninguno") + ")" for lid in surplus)
+        )
+    if memory_errors:
+        for e in memory_errors:
             print(f"[FAIL]  {e}")
         sys.exit(1)
     # Ninguna feature real avanza con los docs del proyecto sin rellenar: las
@@ -176,7 +299,7 @@ try:
                 continue
             found.append("<" + " ".join(h.split()) + ">")
         return found
-    gated = ("docs/architecture.md", "docs/conventions.md", "docs/verification.md", "CHECKPOINTS.md")
+    gated = ("docs/architecture.md", "docs/conventions.md", "docs/verification.md", "docs/tags.md", "CHECKPOINTS.md")
     real = [f for f in features if not f.get("example")]
     started = [f for f in real if f["status"] in requires_spec]
     unfilled = {p: h for p in gated if (h := holes(p))}
@@ -185,21 +308,19 @@ try:
         for p, h in unfilled.items():
             print(
                 f"[FAIL]  {p} tiene {len(h)} hueco(s) sin rellenar "
-                f"(p. ej. {h[0][:60]}) y la feature {s['id']} ({s['name']}) ya está en {s['status']}"
+                f"(p. ej. {h[0][:60]}) y la feature F-{s['id']} ({s['name']}) ya está en {s['status']}"
             )
         print("[FAIL]  Rellénalos con el usuario antes de avanzar; lo no decidido se escribe como «Sin decidir», no se deja el hueco")
         sys.exit(1)
     for p, h in (unfilled.items() if real else ()):
         print(f"[WARN]  {p} tiene {len(h)} hueco(s): rellénalo antes del primer spec del proyecto")
-    for f in data["features"]:
-        if f["status"] == "done":
-            print(f"[WARN]  feature {f['id']} ({f['name']}) está done en feature_list.json: muévela a feature_archive.json")
-    print(f"[OK]    feature_list.json válido ({len(data['features'])} en cola, {len(archive)} archivadas)")
+    print(f"[OK]    feature_list.json válido ({len(data['features'])} features, {len(archive)} archivadas)")
     if real and not unfilled:
         print(f"[OK]    Docs del proyecto sin huecos")
     print(f"[OK]    Specs presentes para features sdd con estado no-pending")
     print(f"[OK]    Toda feature done tiene revisión APPROVED")
     print(f"[OK]    Toda feature real done tiene la aprobación del usuario en history.md")
+    print(f"[OK]    Memoria dentro del umbral ({THRESHOLD} features cerradas y {THRESHOLD} lecciones activas) y con tags registrados")
 except SystemExit:
     raise
 except Exception as e:
@@ -316,7 +437,7 @@ changes = re.compile(r"^\*\*Veredicto:\*\*\s*CHANGES_REQUESTED\s*$", re.M)
 screenshot = re.compile(r"^\*\*Veredicto:\*\*\s*SCREENSHOT_REQUESTED\s*$", re.M)
 for f in real:
     name, st = f.get("name"), f.get("status")
-    tag = f"#{f.get('id')} {name}"
+    tag = f"F-{f.get('id')} {name}"
     review_path = os.path.join(area(f, "progress"), f"review_{name}.md")
     if st == "spec_ready":
         print(f"  ESPERA AL USUARIO:     {tag} tiene el spec en {area(f, 'specs')}/{name}/; falta que lo apruebe")
@@ -337,10 +458,10 @@ for f in real:
 
 pending = [f for f in real if f.get("status") == "pending"]
 if pending:
-    print(f"  Siguiente pendiente:   #{pending[0].get('id')} {pending[0].get('name')}")
+    print(f"  Siguiente pendiente:   F-{pending[0].get('id')} {pending[0].get('name')}")
 # Cuenta también las archivadas: un id no se reutiliza.
 used = [f.get("id") for f in feats if isinstance(f.get("id"), int)]
-print(f"  Siguiente id libre:    #{max(used, default=0) + 1}")
+print(f"  Siguiente id libre:    F-{max(used, default=0) + 1}")
 
 reg = prose(read(os.path.join("progress", "pending.md")))
 q = len(re.findall(r"^#{3,4} Q\d+", reg, flags=re.M))
@@ -350,19 +471,6 @@ print(f"  Fuera de las features: {q} decisión(es) pendiente(s) del usuario, {d}
 brief = re.sub(r"`[^`\n]*`", "", prose(read(os.path.join("docs", "brief.md"))))
 if real and re.search(r"<[^<>\n]{3,}>", brief):
     print("[WARN]  docs/brief.md tiene huecos sin rellenar y ya hay features del proyecto")
-
-# Los agentes leen de las lecciones solo el índice: una entrada sin fila no
-# existe para ellos, y un registro sin tope acaba costando más de lo que ahorra.
-LESSONS_CAP = 30
-for path in (os.path.join("docs", "lessons.md"), os.path.join("docs", "example", "lessons.md")):
-    text = re.sub(r"^```.*?^```", "", read(path), flags=re.M | re.S)
-    entries = re.findall(r"^#### ((?:ADR|Bug)-\d+)", text, flags=re.M)
-    index = "\n".join(l for l in text.splitlines() if l.lstrip().startswith("|"))
-    missing = [e for e in entries if not re.search(rf"\b{re.escape(e)}\b", index)]
-    if missing:
-        print(f"[WARN]  {path}: sin fila en el índice: {', '.join(missing)}")
-    if len(entries) > LESSONS_CAP:
-        print(f"[WARN]  {path} tiene {len(entries)} entradas (tope {LESSONS_CAP}): propón al usuario cuáles pasar a docs/lessons-archive.md")
 
 def git(*args):
     return subprocess.run(["git", *args], capture_output=True, text=True, timeout=10)

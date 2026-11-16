@@ -26,7 +26,7 @@ spec de una feature de ejemplo (`"example": true`) va en
 | `pending`      | Sin spec. El leader entrevista al humano y después actúa el `spec_author`. |
 | `spec_ready`   | Spec drafted. Esperando aprobación humana. NO se toca código.  |
 | `in_progress`  | Spec aprobado. `implementer` trabajando, o cambio revisado esperando la aprobación final humana. |
-| `done`         | Código verde, `reviewer` aprobó, humano aprobó. La entrada pasa de `feature_list.json` a `feature_archive.json`. |
+| `done`         | Código verde, `reviewer` aprobó, humano aprobó. Se queda en `feature_list.json`, con su fecha `closed`, como memoria reciente; cuando hay más de 20 cerradas, las más antiguas pasan a `feature_archive.json`. |
 | `blocked`      | Atascado. Razón en `progress/current.md`.                      |
 
 Solo el `leader` cambia el `status` de una feature. Los subagentes reciben

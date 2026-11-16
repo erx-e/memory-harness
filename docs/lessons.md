@@ -4,24 +4,32 @@
 > "arreglar" algo que parece raro, búscalo aquí: puede que ya se intentó y se
 > descartó por una razón.
 
+> **Memoria inmediata.** Aquí viven como mucho 20 lecciones activas:
+> decisiones (`ADR`), bugs resueltos (`Bug`) y callejones sin salida (`CS`).
+> Las demás están en `docs/lessons-archive.md`, la memoria de largo plazo,
+> que nadie lee por defecto.
+>
 > **Cómo se lee.** Lee solo «Índice» y «Callejones sin salida». Abre una
-> entrada ADR o Bug únicamente si su fila del índice toca lo que vas a
-> cambiar.
+> entrada ADR o Bug únicamente si su fila del índice comparte tags con tu
+> feature o toca lo que vas a cambiar.
 >
 > **Cómo se escribe.** Solo el leader, al cerrar una feature, con lo que
 > sirve más allá de ella: la entrada al final de su sección y su fila en el
-> índice, en el mismo cambio. Los ids no se reutilizan ni se cambian, porque
-> otros archivos los citan. Aquí no va estado (qué está hecho o pendiente).
+> índice, con sus tags de `docs/tags.md`, en el mismo cambio. Los ids no se
+> reutilizan ni se cambian, porque otros archivos los citan. Aquí no va
+> estado (qué está hecho o pendiente).
 >
-> **Tope: 30 entradas ADR + Bug.** Al superarlo, `./init.sh` avisa y el
-> leader propone al humano cuáles pasar a `docs/lessons-archive.md` (las que
-> el código ya no sustenta). La entrada archivada sale del índice y ningún
-> agente lee el archivo de archivadas por defecto.
+> **Tope: 20 lecciones.** Si al cerrar una feature hay más, el leader mueve a
+> `docs/lessons-archive.md` las menos usadas, con su fila del índice, sin
+> pedir permiso: archivar no es borrar. El último uso de una lección es la
+> feature más reciente (la de id más alto) que la cita en su spec o en sus
+> informes, o la de su «Origen». `./init.sh` lo calcula y falla, diciendo
+> cuáles mover, mientras sobre alguna.
 
 ## Índice
 
-| Id | En una línea | Afecta a |
-|----|--------------|----------|
+| Id | En una línea | Tags | Afecta a |
+|----|--------------|------|----------|
 
 _Sin entradas todavía._
 
@@ -42,10 +50,11 @@ _Ninguno todavía._
 ## Estructura de las entradas
 
 Copia el bloque que corresponda al final de su sección, quita la línea
-"todavía" de esa sección y añade la fila al índice.
+"todavía" de esa sección y añade la fila al índice, con entre 1 y 4 tags de
+`docs/tags.md`.
 
 ```markdown
-| ADR-<n> | <la decisión, en una frase> | <archivos, símbolos o tema a los que afecta> |
+| ADR-<n> | <la decisión, en una frase> | `<tag>`, `<tag>` | <archivos, símbolos o tema a los que afecta> |
 
 #### ADR-<n> · <La decisión, en una frase>
 
@@ -53,7 +62,7 @@ Copia el bloque que corresponda al final de su sección, quita la línea
 - **Decisión:** <qué se hace>
 - **Coste aceptado:** <qué se pierde a cambio>
 - **Descartado:** <la alternativa y por qué no>
-- **Origen:** feature <id> (<archivo donde está el detalle>)
+- **Origen:** F-<id> (<archivo donde está el detalle>)
 
 #### Bug-<n> · <El síntoma, en una frase>
 
@@ -61,7 +70,11 @@ Copia el bloque que corresponda al final de su sección, quita la línea
 - **Causa:** <la causa real, con archivo:línea>
 - **Solución:** <qué se cambió>
 - **Lección:** <qué hacer distinto la próxima vez>
-- **Origen:** feature <id> (<archivo donde está el detalle>)
+- **Origen:** F-<id> (<archivo donde está el detalle>)
 
-- **<Enfoque que no funciona.>** <Por qué falla y qué usar en su lugar.>
+#### CS-<n> · <El enfoque que no funciona, en una frase>
+
+- **Por qué falla:** <qué pasa si se intenta>
+- **En su lugar:** <qué hacer>
+- **Origen:** F-<id> (<archivo donde está el detalle>)
 ```

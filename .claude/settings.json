@@ -94,6 +94,7 @@
   "permissions": {
     "allow": [
       "Bash(./init.sh)",
+      "Bash(./memory.sh*)",
       "Bash(python3 -m unittest*)",
       "Bash(python3 -m src.cli*)",
       "Bash(graphify query*)",

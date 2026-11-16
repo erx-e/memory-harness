@@ -53,12 +53,15 @@ es una UI web.
    | `architecture.md` | Entero | Capas, dirección de imports, dependencias, estructura |
    | `conventions.md`  | Entero | Estilo, nombres, errores |
    | `verification.md` | Entero | La norma contra la que juzgas los tests: un nivel obligatorio que falta, o un anti-patrón de su lista, es un hallazgo Importante |
-   | `lessons.md`      | «Índice» y «Callejones sin salida»; las entradas cuya fila toque el cambio | Si el cambio repite un callejón sin salida o contradice una decisión sin justificarlo, es un hallazgo Importante |
+   | `lessons.md`      | «Índice» y «Callejones sin salida»; las entradas cuya fila comparta tags con la feature o toque el cambio | Si el cambio repite un callejón sin salida o contradice una decisión sin justificarlo, es un hallazgo Importante |
    | `docs/specs.md`   | «requirements.md — EARS estricto» y «design.md — decisiones técnicas» | Las reglas del spec que compruebas en C6 y en el paso 6. No lo leas si la feature es `"sdd": false` |
    | `CHECKPOINTS.md`  | Entero. En una feature de ejemplo, C3 y C4 son los de `docs/example/checkpoints.md` | Paso 9 |
    | `.claude/code-review/code-reviewer.md` | Entero | Tu guía de revisión |
 3. Abre `specs/<name>/` y lee el informe del implementador en
-   `progress/impl_<name>.md`.
+   `progress/impl_<name>.md`. Consulta después la memoria conectada:
+   `./memory.sh F-<id>`. Si el cambio repite un callejón sin salida o
+   contradice una decisión de lo que salga ahí, activa o archivada, sin
+   justificarlo, es un hallazgo Importante.
 4. **Trazabilidad de requirements**: por cada `R<n>` de `requirements.md`,
    localiza al menos un test concreto en `tests/` que lo verifique. Si
    falta cobertura para algún `R<n>`, rechaza.
@@ -124,7 +127,7 @@ Tu salida final es **un único bloque** escrito con `Write` en
 `progress/review_<name>.md`, con esta estructura:
 
 ```markdown
-# Review — feature <id>
+# Review — F-<id>
 
 **Veredicto:** APPROVED | CHANGES_REQUESTED
 

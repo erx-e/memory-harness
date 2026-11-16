@@ -39,5 +39,5 @@ Copia el bloque que corresponda en su sección y quita la línea "Ninguna".
 - **Dónde:** <archivo:línea>
 - **Arreglo propuesto:** <qué habría que hacer>
 - **Gravedad:** <alta | media | baja> · **Esfuerzo:** <alto | medio | bajo>
-- **Origen:** feature <id> (<informe o spec donde está el detalle>)
+- **Origen:** F-<id> (<informe o spec donde está el detalle>)
 ```

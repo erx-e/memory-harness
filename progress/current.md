@@ -25,6 +25,6 @@ _Anota aquí cada paso significativo: archivos creados, decisiones, bloqueos._
 _Si la sesión se interrumpe, lo primero que debe hacer la siguiente sesión._
 
 <!-- El leader añade debajo, cuando existen, las secciones
-"Decisiones de la entrevista — feature <id> (<name>)" y
+"Decisiones de la entrevista — F-<id> (<name>)" y
 "Cambios pedidos por el usuario". Su formato está en
 .claude/agents/leader.md. -->

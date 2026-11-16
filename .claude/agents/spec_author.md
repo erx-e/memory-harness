@@ -34,7 +34,7 @@ ni `tests/`. Si lo haces, el reviewer rechaza la feature.
    | `architecture.md` | Entero | El diseño cabe en sus capas, su stack y su estructura |
    | `conventions.md`  | «Nombres», «Tests» y «Manejo de errores» | Nombres de las firmas, de los tests y errores que cita `design.md` |
    | `verification.md` | «Niveles de verificación» | Cada `R<n>` se comprueba con uno de esos niveles, y las tasks de test cubren los obligatorios |
-   | `lessons.md`      | «Índice» y «Callejones sin salida»; las entradas cuya fila toque tu feature | No proponer un enfoque ya descartado |
+   | `lessons.md`      | «Índice» y «Callejones sin salida»; las entradas cuya fila comparta tags con tu feature o toque lo que vas a diseñar | No proponer un enfoque ya descartado |
    | `docs/specs.md`   | «requirements.md — EARS estricto», «design.md — decisiones técnicas», «tasks.md — checklist ejecutable» y «Trazabilidad» | El formato y las reglas de tus tres archivos |
 
    - Si la feature, o una decisión de la entrevista, contradice "Qué NO
@@ -48,6 +48,13 @@ ni `tests/`. Si lo haces, el reviewer rechaza la feature.
    criterio. Si la sección no existe, paras con `blocked`: la entrevista va
    antes del spec. Si dice que el humano la omitió, trabajas solo con el
    `acceptance`.
+
+   Después consulta la memoria conectada con tu feature: `./memory.sh F-<id>`.
+   Abre solo las entradas que afecten a tu diseño, estén en la memoria
+   inmediata o en la de largo plazo. No propongas un callejón sin salida que
+   salga ahí ni contradigas una decisión sin decir por qué ha cambiado la
+   situación, y cita en `design.md` por su id lo que uses («ver ADR-3»,
+   «como en F-9»).
 4. Redacta `requirements.md` en **EARS estricto**. Cada criterio del
    `acceptance` DEBE estar cubierto por al menos un `R<n>`, y también cada
    decisión de la entrevista que diga qué hace la feature. Las que dicen

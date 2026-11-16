@@ -1,6 +1,6 @@
-# Review — feature 6
+# Review — F-6
 
-> **Ejemplo.** Revisión de la feature #6 del proyecto de muestra (CLI de
+> **Ejemplo.** Revisión de la feature F-6 del proyecto de muestra (CLI de
 > notas), anterior a SDD: sin spec, se revisa contra la `description` y el
 > `acceptance` de la feature. Muestra cómo queda un veredicto sin spec con
 > la estructura de `.claude/agents/reviewer.md`. Se retira con el resto del

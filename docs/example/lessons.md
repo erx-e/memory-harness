@@ -3,23 +3,27 @@
 > **Ejemplo.** Lecciones del proyecto de muestra (CLI de notas en Python).
 > Valen solo para las features con `"example": true`; las del proyecto real
 > van en `docs/lessons.md`, que explica cómo se lee y se escribe este
-> registro.
+> registro. Sus tags son los de `docs/example/tags.md`.
 
 ## Índice
 
-| Id     | En una línea                                                                 | Afecta a                                   |
-|--------|------------------------------------------------------------------------------|--------------------------------------------|
-| ADR-01 | `recent` ordena con `sorted()[:limit]`, no con `heapq.nlargest`              | `src/cli.py` › `cmd_recent`                |
-| ADR-02 | `--limit` lo valida el comando, no `argparse`                                | `src/cli.py` › comandos con flags numéricos |
-| Bug-01 | Notas creadas seguidas comparten `created_at`: los tests de orden fijan fechas | `tests/test_cli.py`, `src/notes.py` › `Note.new` |
+| Id     | En una línea                                                                   | Tags                           | Afecta a                                         |
+|--------|--------------------------------------------------------------------------------|--------------------------------|--------------------------------------------------|
+| ADR-01 | `recent` ordena con `sorted()[:limit]`, no con `heapq.nlargest`                | `cli`, `fechas`                | `src/cli.py` › `cmd_recent`                      |
+| ADR-02 | `--limit` lo valida el comando, no `argparse`                                  | `cli`, `validacion`, `errores` | `src/cli.py` › comandos con flags numéricos      |
+| Bug-01 | Notas creadas seguidas comparten `created_at`: los tests de orden fijan fechas | `tests`, `fechas`              | `tests/test_cli.py`, `src/notes.py` › `Note.new` |
+| CS-01  | Crear las notas con `add` en tests de orden temporal                           | `tests`, `fechas`              | `tests/test_cli.py`                              |
 
 ## Callejones sin salida
 
 **No vuelvas a intentar esto:**
 
-- **Crear las notas con el comando `add` en tests de orden temporal.** Se
-  crean en el mismo segundo y el orden queda indefinido (Bug-01). Usa
-  `_add_with_created_at`.
+#### CS-01 · Crear las notas con el comando `add` en tests de orden temporal
+
+- **Por qué falla:** se crean en el mismo segundo y el orden queda
+  indefinido (Bug-01).
+- **En su lugar:** usa `_add_with_created_at`.
+- **Origen:** F-7 (`progress/example/impl_cli_recent.md`).
 
 ## Decisiones
 
@@ -30,7 +34,7 @@
 - **Coste aceptado:** O(n log n) en vez de O(n log k).
 - **Descartado:** `heapq.nlargest`. El archivo de notas es pequeño y el resto
   de `cli.py` usa `sorted` y comprensiones simples; la claridad pesa más.
-- **Origen:** feature 7 (`specs/example/cli_recent/design.md`).
+- **Origen:** F-7 (`specs/example/cli_recent/design.md`).
 
 #### ADR-02 · La validación de `--limit` la hace el comando, no `argparse`
 
@@ -40,7 +44,7 @@
 - **Coste aceptado:** una comprobación manual por comando.
 - **Descartado:** un `type` personalizado en `argparse`. Rompería la regla de
   que los errores de dominio pasan por el handler de `main()`.
-- **Origen:** feature 7 (`specs/example/cli_recent/design.md`).
+- **Origen:** F-7 (`specs/example/cli_recent/design.md`).
 
 ## Bugs resueltos
 
@@ -54,4 +58,4 @@
   (`tests/test_cli.py:155`) escribe notas con una fecha controlada.
 - **Lección:** cualquier test que dependa del orden temporal debe fijar las
   fechas, no confiar en el reloj.
-- **Origen:** feature 7 (`progress/example/impl_cli_recent.md`).
+- **Origen:** F-7 (`progress/example/impl_cli_recent.md`).

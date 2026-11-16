@@ -1,6 +1,6 @@
-# Review — feature 7
+# Review — F-7
 
-> **Ejemplo.** Revisión de la feature #7 del proyecto de muestra (CLI de
+> **Ejemplo.** Revisión de la feature F-7 del proyecto de muestra (CLI de
 > notas), la primera hecha con SDD. Muestra cómo queda un veredicto relleno
 > con la estructura de `.claude/agents/reviewer.md`. Lo descartado y las
 > recomendaciones son los que el leader registró después como `Q1` y `D1`

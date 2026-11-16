@@ -10,7 +10,7 @@
 Copia el bloque al final del archivo por cada feature cerrada y rellénalo:
 
 ```markdown
-### AAAA-MM-DD — Feature <id>: <name>
+### AAAA-MM-DD — F-<id>: <name>
 - **Agente:** <quién trabajó, p. ej. leader → implementer → reviewer>
 - **Plan:** <qué se quería conseguir, en una frase>
 - **Cambios:** <archivos tocados y qué cambió en cada uno>

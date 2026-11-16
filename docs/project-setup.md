@@ -38,14 +38,19 @@ de `pending` con ellos.
    - Al rellenar un archivo, quita su nota «Plantilla» y el texto que solo
      explica cómo rellenarlo. Los agentes leen estos archivos en cada
      feature: lo que no es una regla del proyecto solo gasta contexto.
-3. **Comandos del stack**: si el proyecto no usa Python, acuerda con el
+3. **`docs/tags.md`**: crea la lista de tags a partir de las capas y
+   módulos de `docs/architecture.md`, con una línea por tag que diga qué
+   cubre, y enséñasela al humano. Sin ella ninguna feature puede dejar
+   `pending`: `./init.sh` exige que sus tags estén en la lista. Como muestra
+   tienes `docs/example/tags.md`.
+4. **Comandos del stack**: si el proyecto no usa Python, acuerda con el
    humano su comando de tests y cámbialo en `init.sh` (sección 4) y en
    `.claude/settings.json`: el hook que lanza los tests tras cada edición,
    los permisos `Bash(python3 …)` y, si su código no vive en `src/` y
    `tests/`, las carpetas que vigilan los hooks. Refleja esos cambios en
    `docs/hooks.md` (H1 y H2). Hazlo antes de retirar el ejemplo: sin sus
    tests, el comando de Python no tiene nada que ejecutar.
-4. **Ejemplo**: si el proyecto ya tiene código propio o su stack no es
+5. **Ejemplo**: si el proyecto ya tiene código propio o su stack no es
    Python, retíralo ahora (sección siguiente). Si empieza de cero y usa
    Python, se queda hasta el cierre de la primera feature real.
 
@@ -77,10 +82,10 @@ que ya existe.
      solo si su carpeta se queda sin otro código.
    - De `docs/example/`: `lessons.md` siempre, y cada uno de los demás
      **solo si su gemelo ya está relleno** (sin huecos `<...>`): `brief.md`,
-     `architecture.md`, `conventions.md` y `verification.md` con el archivo
-     del mismo nombre en `docs/`, y `checkpoints.md` con C3 y C4 de
-     `CHECKPOINTS.md`. Los que sigan sin rellenar conservan su ejemplo y se
-     lo dices al humano.
+     `architecture.md`, `conventions.md`, `verification.md` y `tags.md` con
+     el archivo del mismo nombre en `docs/`, y `checkpoints.md` con C3 y C4
+     de `CHECKPOINTS.md`. Los que sigan sin rellenar conservan su ejemplo y
+     se lo dices al humano.
 2. **Pide confirmación al humano** con esa lista. Si el proyecto no está en
    git, el borrado no se puede deshacer. Sin un "sí", no borres nada.
 3. **Con el "sí"**:

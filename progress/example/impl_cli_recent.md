@@ -1,11 +1,11 @@
 # Implementación — cli_recent
 
-> **Ejemplo.** Informe del implementer de la feature #7 del proyecto de
+> **Ejemplo.** Informe del implementer de la feature F-7 del proyecto de
 > muestra (CLI de notas), la primera hecha con SDD. Muestra cómo queda un
 > informe relleno con la estructura de `.claude/agents/implementer.md`. Se
 > retira con el resto del ejemplo (`docs/project-setup.md`).
 
-> Feature #7. Resumen de la implementación y trazabilidad `R<n> → test`.
+> F-7. Resumen de la implementación y trazabilidad `R<n> → test`.
 
 ## Resumen de cambios
 
