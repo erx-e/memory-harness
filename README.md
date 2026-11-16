@@ -941,7 +941,10 @@ pendientes (`Q<n>`). Todo lo demás lo conduce el leader.
 - La skill `chrome-devtools-cli` viene de
   [ChromeDevTools/chrome-devtools-mcp](https://github.com/ChromeDevTools/chrome-devtools-mcp)
   (Apache 2.0, Google LLC).
+- La skill `playwright-cli` viene del paquete npm `@playwright/cli` de
+  [microsoft/playwright-cli](https://github.com/microsoft/playwright-cli)
+  (Apache 2.0, Microsoft Corporation).
 
 Las carpetas de estos componentes incluyen su licencia y un `SOURCE.txt` con
 su origen. El resto del repositorio se distribuye bajo la licencia
-[MIT](LICENSE).
+[MIT](LICENSE), con copyright de erx-e.
