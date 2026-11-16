@@ -1,15 +1,17 @@
 # Design — cli_recent
 
 > Decisiones técnicas para implementar el comando `recent`. Apoyado en
-> `docs/architecture.md` y `docs/conventions.md`. Solo se documentan los
-> puntos donde la feature roza la frontera de esas reglas.
+> `docs/example/architecture.md` y `docs/example/conventions.md`. Solo se
+> documentan los puntos donde la feature roza la frontera de esas reglas.
+> Cada archivo y firma cita los `R<n>` que lo motivan (regla
+> anti-sobreingeniería de `docs/specs.md`).
 
 ## Alcance y archivos a tocar
 
-| Archivo                  | Cambio                                                                 |
-|--------------------------|------------------------------------------------------------------------|
-| `src/cli.py`             | Añadir `cmd_recent` y registrar el subparser `recent` en `build_parser` |
-| `tests/test_cli.py`      | Añadir 4 tests nuevos (orden por defecto, límite custom, archivo vacío, límite inválido) |
+| Archivo                  | Cambio                                                                 | Motivado por |
+|--------------------------|------------------------------------------------------------------------|--------------|
+| `src/cli.py`             | Añadir `cmd_recent` y registrar el subparser `recent` en `build_parser` | R1–R7        |
+| `tests/test_cli.py`      | Añadir 5 tests nuevos (orden por defecto, límite custom, archivo vacío, límite 0 y límite negativo) y el helper `_add_with_created_at` | R1–R7 |
 
 No se tocan `src/notes.py` ni `src/storage.py`. La feature es puramente
 de presentación: lee notas con `storage.load()`, ordena y filtra en memoria,
@@ -22,7 +24,12 @@ def cmd_recent(args: argparse.Namespace) -> int:
     ...
 ```
 
-Recibe el `Namespace` con un atributo `limit: int` (default `5`).
+Recibe el `Namespace` con un atributo `limit: int` (default `5`). Motivado
+por R1–R7.
+
+El helper de test `_add_with_created_at` escribe una nota con un
+`created_at` controlado: sin él, R3 no se puede comprobar, porque las notas
+creadas en el mismo segundo comparten marca de tiempo (ver «Ordenación»).
 
 Subparser registrado en `build_parser()`:
 
@@ -48,6 +55,18 @@ p_recent.set_defaults(func=cmd_recent)
    (idéntico al `cmd_list`).
 7. Retornar `0`.
 
+## Contratos de datos
+
+Sin contratos de datos nuevos. `cmd_recent` lee el diccionario de nota que
+ya guarda `storage` y no lo cambia:
+
+| Campo        | Tipo  | Uso en esta feature                          |
+|--------------|-------|----------------------------------------------|
+| `id`         | `int` | Primer campo de cada línea de salida (R4)     |
+| `title`      | `str` | Tercer campo de cada línea de salida (R4)     |
+| `body`       | `str` | No se usa                                    |
+| `created_at` | `str` | ISO 8601; clave de orden (R3) y segundo campo (R4) |
+
 ## Manejo de errores
 
 - Reutilizar `NoteError` ya definido en `src/notes.py`. No se introducen
@@ -65,7 +84,7 @@ Idéntico a `cmd_list`:
 
 La cadena `f"{n['id']}\t{n['created_at']}\t{n['title']}"` se duplica
 deliberadamente entre `cmd_list` y `cmd_recent` para evitar introducir un
-helper compartido sin justificación (`docs/architecture.md` desaconseja
+helper compartido sin justificación (`docs/example/architecture.md` desaconseja
 abstracciones prematuras). Si en el futuro un tercer comando necesita el
 mismo formato, se extraerá un `_format_row(note: dict) -> str` privado.
 
@@ -91,7 +110,7 @@ descarta porque:
 - El dataset esperado es pequeño (notas personales en un JSON local).
 - `sorted(...)[:limit]` es más legible y mantiene paridad estilística con
   el resto de `cli.py`, que usa list comprehensions y `sorted` simples.
-- `docs/architecture.md` prioriza claridad sobre optimización prematura.
+- `docs/example/architecture.md` prioriza claridad sobre optimización prematura.
 
 ## Riesgos / notas
 

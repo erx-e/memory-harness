@@ -1,6 +1,6 @@
 # Requirements — cli_recent
 
-> Feature #7 del `feature_list.json`. Comando `recent` que lista las N notas
+> Feature #7 (`cli_recent`). Comando `recent` que lista las N notas
 > más recientes ordenadas por `created_at` descendente.
 >
 > Cada requirement está redactado en EARS estricto y es verificable por al
@@ -37,7 +37,7 @@ un mensaje de error en stderr.
 SI el usuario ejecuta `python -m src.cli recent --limit <N>` con `N <= 0`
 ENTONCES el sistema NO DEBE modificar el archivo de notas.
 
-## Trazabilidad con `acceptance` del feature_list.json
+## Trazabilidad con el `acceptance` de la feature
 
 | Acceptance criterion (feature #7)                                                       | Cubierto por |
 |-----------------------------------------------------------------------------------------|--------------|

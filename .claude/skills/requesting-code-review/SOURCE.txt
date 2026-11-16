@@ -1,3 +1,0 @@
-Origen: https://github.com/obra/superpowers (commit 22f0b46), skills/requesting-code-review
-Licencia: MIT, ver LICENSE (Copyright (c) 2025 Jesse Vincent)
-Instalada: 2026-11-14, sin modificaciones.

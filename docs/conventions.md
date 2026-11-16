@@ -3,91 +3,28 @@
 > Homogeneidad extrema. La IA predice mejor cuando el repositorio se parece
 > a sí mismo en todas partes.
 
-> **Cómo usar este archivo.** Tiene dos partes con la misma estructura.
-> «Ejemplo» es el contenido real del proyecto de muestra (CLI de notas en
-> Python) y enseña cómo se rellena. «Tu proyecto» es esa estructura vacía.
-> «Ejemplo» vale solo para las features de ejemplo (`"example": true`); para
-> las tuyas rige solo «Tu proyecto», nunca las reglas del ejemplo. El leader
-> lo rellena contigo antes de tu primera feature: `./init.sh` falla si una
-> feature tuya avanza con huecos `<...>`, así que lo que aún no esté decidido
-> se escribe como «Sin decidir». No borres «Ejemplo» a mano: lo retira el
-> leader, y solo si «Tu proyecto» ya está relleno.
+> **Plantilla.** Los huecos `<...>` los rellena el leader contigo antes de tu
+> primera feature (`docs/project-setup.md`); al rellenarla se quitan esta nota
+> y el texto que solo explica cómo rellenar. Ejemplo relleno:
+> `docs/example/conventions.md`.
 
-## Ejemplo: CLI de notas
+## Estilo <lenguaje>
 
-### Estilo Python
-
-- **Versión:** Python 3.9+ (sintaxis `list[str]` permitida).
-- **Formato:** PEP 8. Líneas máximo 100 caracteres.
-- **Imports:** stdlib primero, luego locales. Una línea por módulo.
-- **Strings:** comillas dobles `"..."` siempre. Comillas simples solo
-  para escapar comillas dobles dentro.
-- **f-strings** para interpolación. Nada de `.format()` ni `%`.
-
-### Nombres
-
-| Tipo                    | Convención        | Ejemplo               |
-|-------------------------|-------------------|-----------------------|
-| Módulos                 | `snake_case`      | `notes.py`            |
-| Clases                  | `PascalCase`      | `Note`                |
-| Funciones / variables   | `snake_case`      | `load_notes`          |
-| Constantes              | `UPPER_SNAKE`     | `DEFAULT_NOTES_PATH`  |
-| Privadas                | prefijo `_`       | `_atomic_write`       |
-
-### Estructura de archivo
-
-Cada archivo en `src/` empieza con:
-
-```python
-"""Una línea describiendo el propósito del módulo."""
-from __future__ import annotations
-
-# imports stdlib
-import json
-import os
-
-# imports locales
-from src.notes import Note
-```
-
-### Tests
-
-- Un archivo de test por módulo: `tests/test_<módulo>.py`.
-- Una clase `Test<Cosa>(unittest.TestCase)` por unidad lógica.
-- Cada test usa un `tempfile.TemporaryDirectory()` y limpia tras de sí.
-- Nombres de test descriptivos: `test_load_returns_empty_when_file_missing`.
-
-### Manejo de errores
-
-Excepciones del dominio en `src/notes.py`:
-
-```python
-class NoteError(Exception):
-    """Base para errores del dominio."""
-
-class NoteNotFound(NoteError):
-    """Se lanza cuando se busca una nota inexistente."""
-```
-
-El CLI captura excepciones del dominio, imprime mensaje a `stderr` y sale
-con código 1. Nunca propaga stack traces al usuario.
-
-### Comentarios
-
-Por defecto **no** se escriben. Solo se permiten cuando explican un *por qué*
-no obvio (p. ej. workaround documentado, invariante sutil). Los nombres deben
-hacer el resto.
-
-## Tu proyecto
-
-### Estilo <lenguaje>
+Si un formateador o un linter ya aplica el formato, él es la norma: nombra la
+herramienta y no repitas aquí lo que impone (longitud de línea, comillas,
+orden de imports). Esta sección es para lo que solo se comprueba leyendo.
 
 - **Versión:** <versión mínima del lenguaje o del runtime>
-- **Formato:** <formateador o guía de estilo; longitud máxima de línea>
-- **Imports:** <orden y agrupación>
-- **Strings:** <comillas e interpolación>
+- **Formato automático:** <formateador o linter, comando que lo ejecuta y
+  archivo donde se configura; o "ninguno">
+- **Formato a mano:** <solo si no hay herramienta: longitud máxima de línea,
+  comillas, orden y agrupación de imports. Si la hay, escribe "lo aplica la
+  herramienta".>
+- **Reglas que la herramienta no detecta:** <reglas semánticas que el revisor
+  comprueba leyendo el código: tipos prohibidos, inmutabilidad exigida, forma
+  de interpolar cadenas.>
 
-### Nombres
+## Nombres
 
 | Tipo                    | Convención        | Ejemplo               |
 |-------------------------|-------------------|-----------------------|
@@ -97,23 +34,43 @@ hacer el resto.
 | Constantes              | <...>             | <...>                 |
 | Privadas                | <...>             | <...>                 |
 
-### Estructura de archivo
+## Estructura de archivo
 
-<Con qué empieza cada archivo de código y en qué orden van sus partes.
+<Con qué empieza cada archivo de código y cómo se agrupan sus imports.
 Acompáñalo de un bloque de código de muestra.>
 
-### Tests
+<Orden de los miembros dentro de una clase o de un módulo. Por ejemplo:
+constantes, propiedades, constructor, métodos públicos y, al final, helpers
+privados.>
+
+## Tests
 
 - <Dónde viven los tests y cómo se nombran sus archivos.>
 - <Cómo se agrupan (clases, bloques, módulos).>
 - <Qué recursos reales usan y cómo limpian tras de sí.>
-- <Cómo se nombra cada test.>
+- <Cómo se nombra cada test: el patrón y un ejemplo.>
 
-### Manejo de errores
+El nombre de un test es lo que se cita en el mapa `R<n>` → test de
+`progress/impl_<name>.md`, y con él lo busca el reviewer. Por eso la
+convención debe dar nombres que describan el comportamiento verificado y que
+no se repitan en toda la suite. No pongas el número del requirement en el
+nombre: `R1` existe en el spec de cada feature.
 
-<Qué errores define el dominio y dónde. Cómo los presenta la interfaz al
-usuario: mensaje, canal de salida y código de salida.>
+## Manejo de errores
 
-### Comentarios
+El mecanismo (excepciones o tipos de resultado) lo fija
+`docs/architecture.md` › Principios. Aquí va dónde se definen los errores y
+cómo llegan al usuario.
+
+<Qué errores define el dominio y en qué archivo o carpeta.>
+
+<Cómo los traduce la capa externa, según el tipo de aplicación. En una
+herramienta de consola: mensaje, canal de salida y código de salida. En una
+API: código HTTP y cuerpo del error. En una app con pantallas: el estado de
+error que ve el usuario.>
+
+<Qué no llega nunca al usuario: trazas, mensajes internos, datos sensibles.>
+
+## Comentarios
 
 <Cuándo se permiten y cuándo no.>

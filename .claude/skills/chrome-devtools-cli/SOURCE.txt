@@ -1,0 +1,4 @@
+Origen: paquete npm chrome-devtools-mcp 1.13.0 (https://github.com/ChromeDevTools/chrome-devtools-mcp), skills/chrome-devtools-cli
+Licencia: Apache 2.0, ver LICENSE (Copyright Google LLC)
+Instalada: 2026-11-15, sin modificaciones.
+Actualizar: cuando se actualice el paquete, volver a copiar la skill (describe los comandos de esa versión).

@@ -1,0 +1,112 @@
+# Preparar el proyecto y retirar el ejemplo
+
+> Dos procedimientos del `leader` que se hacen una sola vez por proyecto.
+> Por eso viven aquí y no en su definición: léelo solo cuando vayas a
+> empezar la primera feature real o a retirar el ejemplo.
+
+## Preparar el proyecto (antes de la primera feature real)
+
+Lo del proyecto de muestra vive aparte, en la subcarpeta `example/` de cada
+área (`docs/example/`, `specs/example/`, `progress/example/`). Una feature
+real se redacta, se implementa y se revisa contra `docs/` y
+`CHECKPOINTS.md`, así que esos archivos tienen que estar rellenos antes del
+primer spec.
+`./init.sh` avisa si hay features reales con huecos y **falla** si una pasa
+de `pending` con ellos.
+
+1. **`docs/brief.md`**: se rellena preguntando, no deduciendo. El porqué y
+   los límites no están en el código. Pregunta al humano lo mínimo: qué es
+   el proyecto y qué problema resuelve, quién lo usa y qué necesita, qué no
+   debe hacer todavía, y cómo sabrá que funciona. Escribe sus respuestas sin
+   adornarlas. Si prefiere no responder ahora, sigue adelante y anótalo como
+   `Q<n>` en `progress/pending.md`.
+2. **`docs/architecture.md`, `docs/conventions.md`, `docs/verification.md` y
+   C3 y C4 de `CHECKPOINTS.md`**: déjalos sin huecos `<...>`. Como muestra
+   de cómo queda cada uno relleno tienes su gemelo en `docs/example/`.
+   - Si el proyecto ya tiene código, redáctalos tú a partir de él (el grafo
+     primero, ver `docs/graphify.md`), describiendo lo que hay y no lo que
+     debería haber, y enséñaselos al humano para que los corrija.
+   - Si empieza de cero, pregunta al humano qué está decidido y escribe solo
+     eso.
+   - Lo que no esté decidido se escribe como «Sin decidir todavía (`Q<n>`)»
+     y se anota como `Q<n>` en `progress/pending.md`. Nunca dejes el hueco:
+     un hueco no es una regla, y el agente que lo lea rellenará el vacío con
+     lo que tenga más cerca.
+   - En `docs/architecture.md` › Principios, el de capas y dirección de
+     dependencias no se omite: di qué capa puede importar a cuál, o que el
+     proyecto tiene una sola.
+   - Al rellenar un archivo, quita su nota «Plantilla» y el texto que solo
+     explica cómo rellenarlo. Los agentes leen estos archivos en cada
+     feature: lo que no es una regla del proyecto solo gasta contexto.
+3. **Comandos del stack**: si el proyecto no usa Python, acuerda con el
+   humano su comando de tests y cámbialo en `init.sh` (sección 4) y en
+   `.claude/settings.json`: el hook que lanza los tests tras cada edición,
+   los permisos `Bash(python3 …)` y, si su código no vive en `src/` y
+   `tests/`, las carpetas que vigilan los hooks. Refleja esos cambios en
+   `docs/hooks.md` (H1 y H2). Hazlo antes de retirar el ejemplo: sin sus
+   tests, el comando de Python no tiene nada que ejecutar.
+4. **Ejemplo**: si el proyecto ya tiene código propio o su stack no es
+   Python, retíralo ahora (sección siguiente). Si empieza de cero y usa
+   Python, se queda hasta el cierre de la primera feature real.
+
+## Retirar el ejemplo
+
+El repositorio trae un proyecto de muestra (CLI de notas en Python). Sus
+features llevan `"example": true`. Se retira entero y de una vez, siempre
+con la confirmación del humano. Cuándo depende del proyecto real:
+
+| Proyecto real                                    | Cuándo retiras el ejemplo                                                                 |
+|--------------------------------------------------|-------------------------------------------------------------------------------------------|
+| Ya tiene código propio, o su stack no es Python  | **Por adelantado**: al preparar el proyecto, antes del `spec_author` de la primera feature real |
+| Empieza de cero y usa Python                     | Al cerrar la primera feature real; hasta entonces es la referencia de cómo se rellena cada archivo |
+
+Se adelanta en esos dos casos porque ahí el ejemplo no puede convivir con el
+proyecto: su código y sus tests son de otro stack, o se mezclan con código
+que ya existe.
+
+1. **Prepara la lista** de lo que se borra:
+   - Las features con `"example": true` de `feature_list.json` y de
+     `feature_archive.json`.
+   - `specs/example/` y `progress/example/`, enteras: los specs, los
+     informes, la bitácora y los pendientes del ejemplo.
+   - Código y tests del ejemplo: `src/storage.py`, `src/notes.py`,
+     `src/cli.py`, `tests/test_storage.py`, `tests/test_notes.py`,
+     `tests/test_cli.py`. Excluye cualquiera que haya modificado una feature
+     real (míralo en el "Resumen de cambios" de su `progress/impl_<name>.md`)
+     y pregunta al humano por él. `src/__init__.py` y `tests/__init__.py`,
+     solo si su carpeta se queda sin otro código.
+   - De `docs/example/`: `lessons.md` siempre, y cada uno de los demás
+     **solo si su gemelo ya está relleno** (sin huecos `<...>`): `brief.md`,
+     `architecture.md`, `conventions.md` y `verification.md` con el archivo
+     del mismo nombre en `docs/`, y `checkpoints.md` con C3 y C4 de
+     `CHECKPOINTS.md`. Los que sigan sin rellenar conservan su ejemplo y se
+     lo dices al humano.
+2. **Pide confirmación al humano** con esa lista. Si el proyecto no está en
+   git, el borrado no se puede deshacer. Sin un "sí", no borres nada.
+3. **Con el "sí"**:
+   a. Lanza un `implementer` con la lista exacta de archivos de `src/` y
+      `tests/` que hay que borrar; tú no puedes tocar esas carpetas.
+   b. Borra tú el resto: las features de ejemplo, `specs/example/`,
+      `progress/example/` y los archivos de `docs/example/` de la lista.
+   c. Sustituye los tres ejemplos de `docs/specs.md` (EARS, tasks y
+      trazabilidad) por fragmentos de la primera feature real: dos
+      requirements de su `requirements.md`, dos tasks de su `tasks.md` y su
+      mapa de trazabilidad de `progress/impl_<name>.md`. Quita de ese archivo
+      la nota «Ejemplos de este archivo».
+   d. Quita lo que apuntaba al ejemplo: en `AGENTS.md`, la regla «Features
+      de ejemplo» y la fila de las carpetas `example/` del mapa; en
+      `CHECKPOINTS.md`, la frase de la nota inicial sobre las features de
+      ejemplo; y la línea «Entradas rellenas de muestra» de
+      `progress/history.md` y `progress/pending.md`. Si en `docs/example/`
+      queda algún archivo porque su gemelo sigue sin rellenar, se conserva
+      solo como muestra: ya no hay features que se rijan por él.
+   e. Ejecuta `./init.sh`. Tiene que seguir verde.
+
+   **En una retirada adelantada** todavía no hay feature real de la que
+   sacar fragmentos. El paso 3c se deja para el cierre de la primera feature
+   real con spec (una feature trivial no tiene spec del que sacarlos): los
+   ejemplos de `docs/specs.md` son de notación y siguen sirviendo.
+4. **Informa al humano** de lo que se borró, lo que se conservó y por qué, y
+   lo que sigue siendo del ejemplo y le toca a él: `README.md`, `project` y
+   `description` de `feature_list.json`, y los comandos de `init.sh` y
+   `.claude/settings.json` si su proyecto no usa Python.

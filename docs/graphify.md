@@ -38,7 +38,7 @@ Connections (13):
   --> load() [calls] src/cli.py:L62
   --> NoteError [calls] src/cli.py:L61
   <-- build_parser() [indirect_call] src/cli.py:L122
-  <-- Algoritmo [references] specs/cli_recent/design.md:L40
+  <-- Algoritmo [references] specs/example/cli_recent/design.md:L40
 ```
 
 Con eso lees `src/cli.py` desde la línea 59, no el archivo entero.
@@ -111,6 +111,8 @@ Para instalarlo: `uv tool install graphifyy` (o `pip install graphifyy`).
 
 ## Avisos automáticos
 
-Un hook de graphify te recuerda consultar el grafo la primera vez que lees o
-buscas en un archivo de código sin haberlo consultado antes, y te muestra lo
-que el grafo ya sabe de ese archivo. Es un aviso, no un bloqueo.
+Un hook de graphify (H7 en `docs/hooks.md`) se evalúa antes de cada
+lectura o búsqueda y, cuando lo ve útil, añade un recordatorio de consultar
+el grafo con lo que ya sabe de ese archivo. Salta también con los `.md`, no
+solo con el código. Es un aviso, no un bloqueo: si ya consultaste el grafo,
+o estás leyendo una sección concreta que te pide tu protocolo, sigue.

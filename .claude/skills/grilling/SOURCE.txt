@@ -1,0 +1,3 @@
+Origen: https://github.com/mattpocock/skills (commit 5863806), skills/productivity/grilling
+Licencia: MIT, ver LICENSE (Copyright (c) 2026 Matt Pocock)
+Instalada: 2026-11-15, sin modificaciones.

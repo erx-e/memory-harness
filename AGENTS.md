@@ -1,131 +1,108 @@
 # AGENTS.md — Mapa de navegación para agentes de IA
 
-> Este archivo es el **punto de entrada** para cualquier agente que trabaje en este
-> repositorio. NO es una biblia de reglas: es un **mapa**. Lee solo lo que
-> necesites cuando lo necesites (divulgación progresiva).
+> Punto de entrada para cualquier agente de este repositorio: un **mapa** y
+> las reglas comunes a todos. Lo que solo afecta a un rol está en su
+> definición (`.claude/agents/<rol>.md`), no aquí.
 
 ---
 
-## 1. Antes de empezar (obligatorio)
+## 1. Antes de empezar
 
-1. Ejecuta `./init.sh` y verifica que termina sin errores. Si falla, **para**
-   y resuelve el entorno antes de tocar código.
-2. Lee `progress/current.md` para entender en qué estado quedó la última sesión.
-3. Lee `feature_list.json`. Toda feature nueva (`"sdd": true`) pasa por
-   **Spec Driven Development** — ver `docs/specs.md` y §4 de este archivo.
-4. Lee `docs/specs.md` antes de tocar cualquier spec o feature `sdd: true`.
+- **Este archivo ya está en tu contexto**: lo importa `CLAUDE.md` en cada
+  sesión y en cada subagente. No lo vuelvas a leer.
+- **Sigue el protocolo de tu definición.** Dice qué leer, en qué momento y
+  cuándo ejecutar `./init.sh`. No leas por adelantado lo que no te pide
+  (divulgación progresiva).
+- **Lee secciones, no archivos.** Cuando tu protocolo nombra una sección,
+  localízala (`Grep` de `^#{2,3} ` con números de línea, o
+  `graphify explain "<título>"`) y lee solo ese tramo con `Read` y
+  `offset`/`limit`.
+- **Tu feature llega en el prompt.** El leader copia en él la entrada de tu
+  feature. No abras `feature_list.json` ni `feature_archive.json`; si te
+  falta la entrada, búscala con `Grep` (`"name": "<name>"` con contexto), sin
+  leer el archivo entero.
 
 ## 2. Mapa del repositorio
 
-| Archivo / carpeta            | Qué contiene                                                                | Cuándo leerlo |
-|------------------------------|-----------------------------------------------------------------------------|---------------|
-| `feature_list.json`          | Lista de tareas con estado (`pending` / `spec_ready` / `in_progress` / `done` / `blocked`) | Siempre, al empezar |
-| `progress/current.md`        | Estado de la sesión actual                                                  | Siempre, al empezar |
-| `progress/history.md`        | Bitácora append-only de sesiones anteriores                                 | Si necesitas contexto histórico |
-| `progress/pending.md`        | Decisiones que esperan al usuario (`Q<n>`) y deuda o mejoras (`D<n>`)       | Para saber qué falta además de las features |
-| `docs/brief.md`              | Para qué existe el proyecto, para quién y qué NO debe hacer                 | Antes de redactar un spec |
-| `docs/lessons.md`            | Decisiones, bugs difíciles resueltos y callejones sin salida                | Antes de proponer un enfoque o de "arreglar" algo raro |
-| `specs/<feature>/`           | `requirements.md` + `design.md` + `tasks.md` (Kiro-style)                   | Antes de implementar cualquier feature con `"sdd": true` |
-| `docs/architecture.md`       | Qué significa "hacer un buen trabajo" en este proyecto                      | Antes de implementar |
-| `docs/conventions.md`        | Reglas de estilo, nombres, estructura                                       | Antes de escribir código |
-| `docs/specs.md`              | Proceso SDD: EARS notation, los 3 archivos, puerta de aprobación humana     | Antes de redactar o leer un spec |
-| `docs/verification.md`       | Cómo verificar que tu trabajo funciona (incluye trazabilidad requirements)  | Antes de declarar una tarea como `done` |
-| `docs/graphify.md`           | Cómo consultar el grafo de contexto: comandos, qué da y qué no              | Antes de leer o buscar código |
-| `graphify-out/`              | Grafo del repositorio (lo regenera `./init.sh`; no se edita a mano)         | Nunca directamente: se consulta con `graphify` |
-| `graphify-out/wiki/index.md` | Wiki del proyecto: un artículo por grupo de código                          | Para entender una zona del proyecto sin leer su código |
-| `graphify-out/GRAPH_REPORT.md` | Informe de arquitectura: piezas centrales, grupos, ciclos de imports      | Para una visión del proyecto entero |
-| `CHECKPOINTS.md`             | Criterios objetivos de "estado final correcto"                              | Para auto-evaluarte |
-| `.claude/agents/`            | Definiciones de subagentes (`leader`, `spec_author`, `implementer`, `reviewer`) | Si orquestas trabajo |
-| `src/`                       | Código de la aplicación                                                     | Para implementar |
-| `tests/`                     | Tests automáticos                                                           | Para verificar |
+| Archivo / carpeta            | Qué contiene                                                                | Quién lo lee y cuándo |
+|------------------------------|-----------------------------------------------------------------------------|-----------------------|
+| `feature_list.json`          | Cola de features sin cerrar (`pending` / `spec_ready` / `in_progress` / `blocked`) | El leader, al empezar |
+| `feature_archive.json`       | Features `done`, movidas aquí al cerrarse                                   | Nadie por defecto; lo valida `./init.sh` |
+| `progress/current.md`        | Feature en curso: plan, decisiones de la entrevista, bitácora               | Leader e implementer, al empezar |
+| `progress/history.md`        | Bitácora append-only de features cerradas                                   | Solo si necesitas contexto histórico |
+| `progress/pending.md`        | Decisiones que esperan al usuario (`Q<n>`) y deuda o mejoras (`D<n>`)       | El leader |
+| `specs/<feature>/`           | `requirements.md` + `design.md` + `tasks.md` (Kiro-style)                   | Implementer y reviewer de esa feature |
+| `docs/brief.md`              | Para qué existe el proyecto, para quién y qué NO debe hacer                 | Leader y spec_author, antes de un spec |
+| `docs/architecture.md`       | Qué significa "hacer un buen trabajo" en este proyecto                      | Antes de diseñar, implementar o revisar |
+| `docs/conventions.md`        | Reglas de estilo, nombres, estructura                                       | Antes de escribir o revisar código |
+| `docs/verification.md`       | Cómo verificar que el trabajo funciona y trampas del entorno                | Antes de ejecutar el primer comando |
+| `docs/lessons.md`            | Decisiones, bugs difíciles resueltos y callejones sin salida                | Su índice, antes de proponer un enfoque o de "arreglar" algo raro |
+| `CHECKPOINTS.md`             | Criterios objetivos de "estado final correcto"                              | El reviewer; el leader, C5 al cerrar |
+| `docs/specs.md`              | Proceso SDD: EARS, los 3 archivos, trazabilidad, cuándo no aplica           | Las secciones que cite tu protocolo |
+| `docs/graphify.md`           | Cómo consultar el grafo de contexto: comandos, qué da y qué no              | Si no te bastan los comandos de §3 |
+| `docs/hooks.md`              | Qué hooks se disparan, qué bloquean y cómo reaccionar                       | Solo cuando te frene un mensaje `[harness]`: tu definición ya resume los tuyos |
+| `docs/project-setup.md`      | Preparar el proyecto y retirar el ejemplo                                   | El leader, una vez por proyecto |
+| `docs/ui-review.md`          | Cómo revisar una interfaz web                                               | El reviewer, solo si la feature toca UI |
+| `graphify-out/`              | Grafo, wiki (`wiki/index.md`) e informe (`GRAPH_REPORT.md`) del repositorio | Nunca directamente: se consulta con `graphify` |
+| `.claude/agents/`            | Definiciones de `leader`, `spec_author`, `implementer` y `reviewer`         | Cada agente recibe la suya; no leas las demás |
+| `src/`, `tests/`             | Código de la aplicación y tests automáticos                                 | Para implementar y verificar |
+| `docs/example/`, `specs/example/`, `progress/example/` | Lo del proyecto de muestra: sus docs, specs, informes, bitácora y pendientes | Solo en features con `"example": true` |
 
-## 3. Reglas duras (no negociables)
+## 3. Reglas comunes (no negociables)
 
-- **Una sola feature a la vez.** No mezcles cambios de varias tareas en la misma sesión.
-- **No declares una tarea `done` sin pruebas verdes.** Ejecuta `./init.sh` y
-  asegúrate de que el bloque de tests pasa al 100%.
-- **Ninguna feature se cierra sin revisión.** `./init.sh` falla si una
-  feature `done` (con SDD, o que no sea del ejemplo) no tiene
-  `progress/review_<name>.md` con `**Veredicto:** APPROVED`.
-- **Ninguna feature real se cierra sin la aprobación del humano.**
-  `./init.sh` falla si una feature `done` que no es del ejemplo no tiene,
-  en su entrada de `progress/history.md`, la línea
-  `- **Aprobación del usuario:** sí`. Solo el humano da esa aprobación.
-- **No saltes la fase de spec.** Toda feature con `"sdd": true` debe pasar
-  por `spec_author` y obtener aprobación humana antes de tocar código.
-- **No saltes las puertas de aprobación humana.** El leader detiene el flujo
-  en `spec_ready` y espera. Y tras el `APPROVED` del reviewer vuelve a parar:
-  solo el humano da la aprobación final que permite marcar `done`.
-- **Ninguna feature real empieza con los docs vacíos.** Las reglas de
-  «Ejemplo» valen solo para las features de ejemplo; una feature real se rige
-  solo por «Tu proyecto». Antes del primer spec, el leader deja sin huecos
-  `<...>` esa parte de `docs/architecture.md`, `docs/conventions.md`,
-  `docs/verification.md` y C3 y C4 de `CHECKPOINTS.md`; lo que no esté
-  decidido se escribe como «Sin decidir», no se deja el hueco. `./init.sh`
-  falla si una feature real pasa de `pending` con huecos.
-- **No borres el ejemplo a mano.** El proyecto de muestra (features con
-  `"example": true` y todo lo que cuelga de ellas) lo retira el leader de una
-  vez, con tu confirmación: antes de la primera feature real si tu proyecto
-  ya tiene código o no usa Python, y al cerrarla si empieza de cero en
-  Python. La parte «Ejemplo» de un doc solo se borra si su parte «Tu
-  proyecto» ya está rellena.
-- **Documenta lo que haces** en `progress/current.md` mientras trabajas, no al final.
+- **Una sola feature a la vez.** No mezcles cambios de varias tareas.
+- **Nada se da por terminado sin `./init.sh` en verde.**
+- **Solo el leader cambia el `status` de una feature y solo el humano
+  aprueba** un spec o un cambio. Un subagente no escribe en
+  `feature_list.json` ni lanza a otro agente.
+- **Docs del proyecto.** Las reglas del proyecto son `docs/brief.md`,
+  `docs/architecture.md`, `docs/conventions.md`, `docs/verification.md`,
+  `docs/lessons.md` y C3-C4 de `CHECKPOINTS.md`.
+- **Features de ejemplo.** Si tu feature lleva `"example": true`, todo lo
+  suyo vive en la subcarpeta `example/` de cada área y no lees ni escribes
+  lo del proyecto: sus docs son los gemelos de `docs/example/` (C3-C4 en
+  `docs/example/checkpoints.md`), su spec está en `specs/example/<name>/` y
+  sus informes, bitácora y pendientes en `progress/example/`. Donde tu
+  definición nombra un doc del proyecto, `specs/<name>/` o un archivo de
+  `progress/`, usa esa subcarpeta. Solo `progress/current.md` es único.
+- **El ejemplo no se borra a mano.** El proyecto de muestra (features con
+  `"example": true` y lo que cuelga de ellas) lo retira el leader de una
+  vez, con la confirmación del humano (`docs/project-setup.md`).
+- **Documenta lo que haces** en `progress/current.md` mientras trabajas, no
+  al final.
 - **No escribas estado que `./init.sh` ya sabe.** Tests en verde, features
   cerradas o cambios sin commitear se desfasan en cuanto alguien actúa fuera
-  de la sesión. El estado real lo imprime `./init.sh` ("Estado del trabajo"),
-  y un hook lo muestra al iniciar cada sesión; ese estado manda sobre lo
-  escrito. En los `.md` va lo que los archivos no dicen solos: foco,
-  decisiones, bloqueos y sus porqués.
+  de la sesión. El estado real lo imprime `./init.sh` ("Estado del trabajo")
+  y manda sobre lo escrito. En los `.md` va lo que los archivos no dicen
+  solos: foco, decisiones, bloqueos y sus porqués.
 - **Lo que se aprende no se queda en la feature.** Decisiones, bugs difíciles
   y enfoques descartados van a `docs/lessons.md`; la deuda y las decisiones
   pendientes, a `progress/pending.md`. Los escribe el leader al cerrar; el
   implementer aporta su sección "Lecciones" y el reviewer sus hallazgos.
-- **Deja el repositorio limpio** antes de cerrar la sesión (ver §5).
+- **No esquives un hook.** Si un mensaje `[harness]` te bloquea o te avisa,
+  corrige la causa, o para y repórtalo. No busques otra vía para hacer lo
+  mismo (por ejemplo, escribir en `src/` con Bash cuando el hook te impide
+  hacerlo con `Edit`).
+- **Deja el repositorio limpio**: sin archivos temporales, sin `print()` de
+  debug y sin TODOs sin contexto.
 - **Si no sabes algo, busca en `docs/`** antes de inventarlo.
 - **Consulta el grafo antes de leer código.** Para saber dónde está algo, qué
   lo usa o qué se rompe al cambiarlo, empieza por `graphify explain "<símbolo>"`
   o `graphify query "<palabras clave>"` y lee solo las líneas que indique. No
-  recorras archivos enteros para orientarte. Detalle en `docs/graphify.md`.
-  Si graphify no está instalado, esta regla no aplica.
+  recorras archivos enteros para orientarte. Si graphify no está instalado,
+  esta regla no aplica.
 
 ## 4. Flujo de trabajo (SDD)
 
 ```
-pending → [spec_author] → spec_ready → ⏸ HUMANO → in_progress → [implementer → reviewer] → ⏸ HUMANO → done
+pending → [entrevista] → [spec_author] → spec_ready → ⏸ HUMANO → in_progress → [implementer → reviewer] → ⏸ HUMANO → done
 ```
 
-1. El leader detecta la primera feature `pending` con `"sdd": true`.
-2. El leader lanza `spec_author`, que crea
-   `specs/<name>/{requirements,design,tasks}.md` y marca el status como
-   `spec_ready`.
-3. **Pausa.** El humano lee el spec en `specs/<name>/` y aprueba (o pide cambios).
-4. Una vez aprobado, el leader cambia el status a `in_progress` y lanza `implementer`.
-5. El implementer ejecuta `tasks.md` una a una, marcándolas `[x]`.
-6. El reviewer verifica trazabilidad `R<n>` ↔ test y tasks completas;
-   aprueba o rechaza. Si rechaza, el implementer corrige y otro reviewer
-   vuelve a revisar, como máximo tres rondas; si la tercera no aprueba, el
-   leader para y plantea el bloqueo al humano. Un hook impide la cuarta
-   ronda hasta que el humano responde.
-7. Si aprueba, el leader **para** y pide al humano la aprobación final del
-   cambio.
-8. Con la aprobación del humano, el leader marca `done` y mueve el resumen a
-   `progress/history.md`. Si el humano pide cambios, vuelven al implementer
-   y al reviewer, y el leader pide de nuevo la aprobación.
+El leader conduce el flujo y para en las dos puertas (⏸). Tu parte está en tu
+definición; el proceso completo, en `docs/specs.md`.
 
-## 5. Cierre de sesión (lifecycle)
-
-Antes de terminar (el cierre lo hace el leader, nunca un subagente):
-
-1. Ejecuta `./init.sh` — todo verde.
-2. Si el reviewer emitió `APPROVED` en `progress/review_<feature>.md` **y**
-   el humano dio su aprobación final: marca `status: "done"` en
-   `feature_list.json`. Sin las dos la feature sigue en `in_progress`.
-3. Mueve el resumen de `progress/current.md` al final de `progress/history.md`.
-4. Vacía `progress/current.md` dejando solo la plantilla.
-5. No dejes archivos temporales, ni `print()` de debug, ni TODOs sin contexto.
-
-## 6. Si te bloqueas
+## 5. Si te bloqueas
 
 - Relee la sección relevante de `docs/`.
 - Si la herramienta no hace lo que esperas, **no inventes un workaround**:
-  documenta el bloqueo en `progress/current.md` y para la sesión.
+  documenta el bloqueo donde indique tu definición y para.

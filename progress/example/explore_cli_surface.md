@@ -4,8 +4,8 @@
 > Se conserva para ver qué deja en disco un subagente de exploración: una
 > pregunta acotada y sus hallazgos, no una respuesta en el chat.
 >
-> Se retira junto con el resto del ejemplo cuando el leader cierra tu
-> primera feature real; no lo borres antes.
+> Se retira con el resto del ejemplo (`docs/project-setup.md`); no lo
+> borres a mano.
 
 **Pregunta:** Qué comandos expone el CLI
 **Archivo analizado:** `src/cli.py`

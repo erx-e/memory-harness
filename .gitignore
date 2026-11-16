@@ -7,3 +7,5 @@ __pycache__/
 .venv/
 .claude/state/
 graphify-out/
+# Salida temporal de playwright-cli: snapshots y logs (puede contener credenciales)
+.playwright-cli/

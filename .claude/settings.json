@@ -101,7 +101,26 @@
       "Bash(graphify affected*)",
       "Bash(graphify path*)",
       "Bash(graphify god-nodes*)",
-      "Bash(graphify update*)"
+      "Bash(graphify update*)",
+      "Bash(playwright-cli *)",
+      "Bash(rm -rf .playwright-cli)",
+      "Bash(chrome-devtools *)"
+    ],
+    "ask": [
+      "Bash(playwright-cli *screenshot*)",
+      "Bash(playwright-cli *pdf*)",
+      "Bash(playwright-cli *video*)",
+      "Bash(playwright-cli *tracing*)",
+      "Bash(playwright-cli show*)",
+      "Bash(playwright-cli * show*)",
+      "Bash(chrome-devtools *screenshot*)",
+      "Bash(chrome-devtools *screencast*)",
+      "Bash(chrome-devtools *experimentalVision*)",
+      "Bash(chrome-devtools *filePath*)",
+      "Bash(chrome-devtools *outputDirPath*)"
     ]
+  },
+  "env": {
+    "CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS": "1"
   }
 }

@@ -41,7 +41,7 @@
 ## Cierre
 
 - [x] T7 — Documentar trazabilidad `R<n>` ↔ test en
-  `progress/impl_cli_recent.md` siguiendo el ejemplo de `docs/specs.md`.
+  `progress/example/impl_cli_recent.md` siguiendo el ejemplo de `docs/specs.md`.
 
 - [x] T8 — Ejecutar `./init.sh` y comprobar que todos los tests pasan
   (incluyendo los nuevos). Cubre: verificación final antes del review.
