@@ -75,7 +75,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -c \"import json, os, re, subprocess, sys\ntry:\n    d = json.load(sys.stdin)\nexcept Exception:\n    d = {}\nroots = [r for r in (os.environ.get('CLAUDE_PROJECT_DIR'), d.get('cwd')) if r and os.path.isfile(os.path.join(r, 'init.sh'))]\nif not roots:\n    sys.exit(0)\ntry:\n    run = subprocess.run(['bash', 'init.sh', '--status'], cwd=roots[0], capture_output=True, text=True, timeout=40)\nexcept Exception as e:\n    print('[harness] No se pudo generar el estado del proyecto: ' + str(e))\n    sys.exit(0)\nlines = re.sub(chr(27) + r'\\\\[[0-9;]*m', '', run.stdout).splitlines()\nstart = next((i for i, l in enumerate(lines) if 'Estado del trabajo' in l), len(lines))\nproblems = [l for l in lines[:start] if '[FAIL]' in l or '[WARN]' in l]\nprint('== Estado real del proyecto (generado por ./init.sh --status al iniciar la sesión) ==')\nprint('Manda sobre cualquier estado escrito a mano en progress/. No incluye tests ni grafo: para eso ejecuta ./init.sh.')\nprint(chr(10).join(l for l in problems + lines[start:] if l.strip()))\nsys.exit(0)\"",
+            "command": "python3 -c \"import json, os, re, subprocess, sys\ntry:\n    d = json.load(sys.stdin)\nexcept Exception:\n    d = {}\nroots = [r for r in (os.environ.get('CLAUDE_PROJECT_DIR'), d.get('cwd')) if r and os.path.isfile(os.path.join(r, 'init.sh'))]\nif not roots:\n    sys.exit(0)\ntry:\n    run = subprocess.run(['bash', 'init.sh', '--status'], cwd=roots[0], capture_output=True, text=True, timeout=40)\nexcept Exception as e:\n    print('[harness] No se pudo generar el estado del proyecto: ' + str(e))\n    sys.exit(0)\nlines = re.sub(chr(27) + r'\\\\[[0-9;]*m', '', run.stdout).splitlines()\nstart = next((i for i, l in enumerate(lines) if 'Estado del trabajo' in l), len(lines))\nproblems = [l for l in lines[:start] if '[FAIL]' in l or '[WARN]' in l]\nprint('== Estado real del proyecto (generado por ./init.sh --status al iniciar la sesión) ==')\nprint('Manda sobre cualquier estado escrito a mano en progress/. No incluye análisis estático, tests ni grafo: para eso ejecuta ./init.sh.')\nprint(chr(10).join(l for l in problems + lines[start:] if l.strip()))\nsys.exit(0)\"",
             "timeout": 45
           }
         ]
@@ -94,6 +94,8 @@
   "permissions": {
     "allow": [
       "Bash(./init.sh)",
+      "Bash(./init.sh --status)",
+      "Bash(./lint.sh)",
       "Bash(./memory.sh*)",
       "Bash(python3 -m unittest*)",
       "Bash(python3 -m src.cli*)",

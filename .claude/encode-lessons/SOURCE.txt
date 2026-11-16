@@ -1,0 +1,7 @@
+Origen: https://github.com/cursor/plugins (commit 08bd59b), pstack/skills/principle-encode-lessons-in-structure/SKILL.md
+Licencia: MIT, ver LICENSE (Copyright (c) 2026 Lauren Tan)
+Copiada: 2026-11-16, sin modificaciones. Se renombró SKILL.md a principle-encode-lessons-in-structure.md y se guarda fuera
+de .claude/skills/ para que no se cargue como skill: ningún agente lee este archivo.
+Uso: traducida y adaptada como la sección «Codificar las lecciones en estructura» de .claude/agents/leader.md. La aplican
+lint.sh, las comprobaciones de init.sh y el campo «Mecanismo» de las lecciones de docs/lessons.md.
+Actualizar: si cambia el original, revisar esa sección.

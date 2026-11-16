@@ -62,12 +62,15 @@ es una UI web.
    `./memory.sh F-<id>`. Si el cambio repite un callejón sin salida o
    contradice una decisión de lo que salga ahí, activa o archivada, sin
    justificarlo, es un hallazgo Importante.
-4. **Trazabilidad de requirements**: por cada `R<n>` de `requirements.md`,
-   localiza al menos un test concreto en `tests/` que lo verifique. Si
-   falta cobertura para algún `R<n>`, rechaza.
-5. **Tasks completas**: comprueba que TODAS las tasks de `tasks.md` están
-   `[x]`. Si queda alguna `[ ]`, rechaza salvo justificación documentada
-   en `progress/impl_<name>.md`.
+4. **Trazabilidad de requirements**: `./init.sh` ya comprueba que el mapa de
+   `progress/impl_<name>.md` da a cada `R<n>` al menos un test y que ese
+   test existe en `tests/`. Tú compruebas lo que pide juicio: que cada test
+   verifica de verdad su `R<n>`, no solo que exista. Si a algún `R<n>` no lo
+   verifica ningún test, rechaza.
+5. **Tasks completas**: `./init.sh` ya comprueba que cada task cita sus
+   `R<n>` y que cada una que siga en `[ ]` tiene su motivo en
+   `progress/impl_<name>.md` › Tasks. Tú juzgas si ese motivo vale; si no,
+   rechaza.
 6. **Conformidad con `design.md`**, según las reglas de `docs/specs.md`:
    - **Contratos de datos**: los nombres y tipos de campo del código y de
      los tests coinciden exactamente con los de `design.md`. Un campo
@@ -92,6 +95,13 @@ es una UI web.
    - ¿Respeta `conventions.md`? (estilo, nombres, errores)
    - ¿Tiene su test correspondiente?
 
+   Lo que `lint.sh` comprueba no lo revisas leyendo: los docs lo marcan con
+   «(lo comprueba `lint.sh`)», y si `./init.sh` está verde, se cumple. Si
+   encuentras un incumplimiento que se podría detectar sin juicio y ni
+   `lint.sh` ni `./init.sh` lo detectan, es un hallazgo igual, y además lo
+   anotas en Recomendaciones como «codificable»: qué regla y qué chequeo lo
+   evitaría.
+
    Para cada función modificada, ejecuta `graphify update .` y luego
    `graphify affected "<símbolo>"`: comprueba que lo que depende de ella
    sigue siendo correcto y está cubierto por tests.
@@ -103,7 +113,8 @@ es una UI web.
    según la sección "Calibration" de la plantilla, y anota lo que dejaste
    fuera por no estar en el spec ("Declined to judge").
 8. Ejecuta `./init.sh`, una sola vez y en este punto. Tiene que terminar
-   verde.
+   verde. Incluye el análisis estático (`lint.sh`) y los chequeos del spec y
+   del informe que citan los pasos 4 y 5.
 9. Recorre C1-C4 y C6 de `CHECKPOINTS.md`. Marca `[x]` los que se cumplen,
    `[ ]` los que no. C5 lo comprueba el leader al cerrar la feature.
 10. Emite veredicto. Es `CHANGES_REQUESTED` si se cumple cualquiera de estas:
@@ -182,6 +193,8 @@ Tu salida final es **un único bloque** escrito con `Write` en
 
 ## Recomendaciones
 - <mejoras de calidad, arquitectura o proceso>
+- codificable: <regla incumplida que se puede comprobar sin juicio> →
+  <chequeo que lo evitaría y dónde: `lint.sh`, `init.sh` o un hook>
 
 ## Cambios requeridos (si aplica)
 1. Añadir test para R2.

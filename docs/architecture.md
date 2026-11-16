@@ -44,9 +44,10 @@ no está en este archivo no es un requisito.
    |-------------------|-----------------|----------------------|------------------------------|
    | `<capa o módulo>` | <qué hace>      | <capas permitidas>   | <capas que no debe conocer>  |
 
-   <Cómo se comprueba: un linter de imports, un test, o `graphify path` entre
-   las dos capas.> Si el proyecto tiene una sola capa, dilo aquí en una
-   línea; no borres el principio.
+   <Cómo se comprueba: una regla de `lint.sh` (un linter de imports o un
+   chequeo propio, como el del ejemplo). Leyendo, o con `graphify path`
+   entre las dos capas, solo si no se puede automatizar.> Si el proyecto
+   tiene una sola capa, dilo aquí en una línea; no borres el principio.
 
 2. **Fronteras y validación.** La validación, el estrechamiento de tipos
    (*type narrowing*) y el manejo de errores van en las fronteras del

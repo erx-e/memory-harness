@@ -37,11 +37,3 @@
   presentes, ejecuta `recent --limit 0` y `recent --limit -3`
   respectivamente; verifica que exit code es `!= 0`, stdout vacío, stderr
   no vacío, y que el archivo de notas en disco no ha cambiado. Cubre: R6, R7.
-
-## Cierre
-
-- [x] T7 — Documentar trazabilidad `R<n>` ↔ test en
-  `progress/example/impl_cli_recent.md` siguiendo el ejemplo de `docs/specs.md`.
-
-- [x] T8 — Ejecutar `./init.sh` y comprobar que todos los tests pasan
-  (incluyendo los nuevos). Cubre: verificación final antes del review.

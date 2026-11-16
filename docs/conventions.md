@@ -12,17 +12,20 @@
 
 Si un formateador o un linter ya aplica el formato, él es la norma: nombra la
 herramienta y no repitas aquí lo que impone (longitud de línea, comillas,
-orden de imports). Esta sección es para lo que solo se comprueba leyendo.
+orden de imports). Esta sección es para lo que solo se comprueba leyendo. La
+herramienta se conecta en `lint.sh`, que ejecuta `./init.sh`: si no, nadie
+la ejecuta y su norma vuelve a ser una instrucción en texto.
 
 - **Versión:** <versión mínima del lenguaje o del runtime>
-- **Formato automático:** <formateador o linter, comando que lo ejecuta y
-  archivo donde se configura; o "ninguno">
+- **Formato automático:** <formateador o linter, el comando con que lo
+  ejecuta `lint.sh` y el archivo donde se configura; o "ninguno">
 - **Formato a mano:** <solo si no hay herramienta: longitud máxima de línea,
   comillas, orden y agrupación de imports. Si la hay, escribe "lo aplica la
   herramienta".>
-- **Reglas que la herramienta no detecta:** <reglas semánticas que el revisor
-  comprueba leyendo el código: tipos prohibidos, inmutabilidad exigida, forma
-  de interpolar cadenas.>
+- **Reglas que la herramienta no detecta:** <reglas que el revisor juzga
+  leyendo el código, como la inmutabilidad exigida. Si una se puede
+  comprobar sin juicio (un tipo o una API prohibidos, la forma de interpolar
+  cadenas), va a `lint.sh` en lugar de aquí.>
 
 ## Nombres
 

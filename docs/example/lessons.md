@@ -23,6 +23,9 @@
 - **Por qué falla:** se crean en el mismo segundo y el orden queda
   indefinido (Bug-01).
 - **En su lugar:** usa `_add_with_created_at`.
+- **Mecanismo:** el helper `_add_with_created_at` (`tests/test_cli.py:155`)
+  fija la fecha de cada nota. Saber qué test depende del orden por fecha
+  requiere juicio.
 - **Origen:** F-7 (`progress/example/impl_cli_recent.md`).
 
 ## Decisiones
@@ -34,6 +37,8 @@
 - **Coste aceptado:** O(n log n) en vez de O(n log k).
 - **Descartado:** `heapq.nlargest`. El archivo de notas es pequeño y el resto
   de `cli.py` usa `sorted` y comprensiones simples; la claridad pesa más.
+- **Mecanismo:** requiere juicio. Elegir claridad o rendimiento depende del
+  tamaño de los datos, y ningún chequeo lo sabe.
 - **Origen:** F-7 (`specs/example/cli_recent/design.md`).
 
 #### ADR-02 · La validación de `--limit` la hace el comando, no `argparse`
@@ -44,6 +49,9 @@
 - **Coste aceptado:** una comprobación manual por comando.
 - **Descartado:** un `type` personalizado en `argparse`. Rompería la regla de
   que los errores de dominio pasan por el handler de `main()`.
+- **Mecanismo:** `lint.sh` falla si un `add_argument` de `src/cli.py` usa un
+  `type=` propio, que es la alternativa descartada. Que cada comando valide
+  sus flags sigue requiriendo juicio.
 - **Origen:** F-7 (`specs/example/cli_recent/design.md`).
 
 ## Bugs resueltos
@@ -58,4 +66,6 @@
   (`tests/test_cli.py:155`) escribe notas con una fecha controlada.
 - **Lección:** cualquier test que dependa del orden temporal debe fijar las
   fechas, no confiar en el reloj.
+- **Mecanismo:** el mismo helper, `_add_with_created_at`. Saber qué test
+  depende del orden por fecha requiere juicio.
 - **Origen:** F-7 (`progress/example/impl_cli_recent.md`).

@@ -7,11 +7,13 @@
 ## Estilo Python
 
 - **Versión:** Python 3.9+ (sintaxis `list[str]` permitida).
-- **Formato:** PEP 8. Líneas máximo 100 caracteres.
-- **Imports:** stdlib primero, luego locales. Una línea por módulo.
-- **Strings:** comillas dobles `"..."` siempre. Comillas simples solo
-  para escapar comillas dobles dentro.
-- **f-strings** para interpolación. Nada de `.format()` ni `%`.
+- **Formato automático:** `lint.sh`, bloque «Ejemplo»: una comprobación
+  propia con la stdlib, porque el ejemplo no admite dependencias. Aplica la
+  longitud de línea, cómo se parte una llamada o una colección que no cabe
+  en una, el orden de los imports, las comillas y la forma de interpolar, y
+  cada fallo dice qué hacer. Lo ejecuta `./init.sh`.
+- **Formato a mano:** lo aplica la herramienta.
+- **Reglas que la herramienta no detecta:** ninguna en esta sección.
 
 ## Nombres
 
@@ -23,9 +25,13 @@
 | Constantes              | `UPPER_SNAKE`     | `DEFAULT_NOTES_PATH`  |
 | Privadas                | prefijo `_`       | `_atomic_write`       |
 
+`lint.sh` comprueba los nombres de funciones y clases. Los de constantes y
+privadas se comprueban leyendo: saber qué es una constante o qué es privado
+pide juicio.
+
 ## Estructura de archivo
 
-Cada archivo en `src/` empieza con:
+Cada archivo en `src/` empieza así (lo comprueba `lint.sh`):
 
 ```python
 """Una línea describiendo el propósito del módulo."""
@@ -41,9 +47,11 @@ from src.notes import Note
 
 ## Tests
 
-- Un archivo de test por módulo: `tests/test_<módulo>.py`.
+- Un archivo de test por módulo: `tests/test_<módulo>.py` (lo comprueba
+  `lint.sh`).
 - Una clase `Test<Cosa>(unittest.TestCase)` por unidad lógica.
 - Cada test usa un `tempfile.TemporaryDirectory()` y limpia tras de sí.
+  `lint.sh` rechaza los mocks del filesystem.
 - Nombres de test descriptivos: `test_load_returns_empty_when_file_missing`.
 
 ## Manejo de errores

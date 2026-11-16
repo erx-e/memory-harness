@@ -12,7 +12,8 @@ real se redacta, se implementa y se revisa contra `docs/` y
 `CHECKPOINTS.md`, así que esos archivos tienen que estar rellenos antes del
 primer spec.
 `./init.sh` avisa si hay features reales con huecos y **falla** si una pasa
-de `pending` con ellos.
+de `pending` con ellos. La marca `SIN_CONFIGURAR` de `lint.sh` cuenta como
+un hueco más (paso 4).
 
 1. **`docs/brief.md`**: se rellena preguntando, no deduciendo. El porqué y
    los límites no están en el código. Pregunta al humano lo mínimo: qué es
@@ -41,6 +42,11 @@ de `pending` con ellos.
      proyecto no recibe datos de fuera, dilo en una línea. Lo que el código
      existente no cumpla se anota como excepción conocida con su `D<n>`, como
      en `docs/example/architecture.md`.
+   - Lo que una regla de estos docs permita comprobar sin juicio (la
+     dirección de imports, el formato, los restos de debug) va a `lint.sh`
+     (paso 4), y en el doc queda «(lo comprueba `lint.sh`)» en lugar de la
+     instrucción. Como muestra, `docs/example/` y el bloque «Ejemplo» de
+     `lint.sh`.
    - Al rellenar un archivo, quita su nota «Plantilla» y el texto que solo
      explica cómo rellenarlo. Los agentes leen estos archivos en cada
      feature: lo que no es una regla del proyecto solo gasta contexto.
@@ -54,8 +60,20 @@ de `pending` con ellos.
    `.claude/settings.json`: el hook que lanza los tests tras cada edición,
    los permisos `Bash(python3 …)` y, si su código no vive en `src/` y
    `tests/`, las carpetas que vigilan los hooks. Refleja esos cambios en
-   `docs/hooks.md` (H1 y H2). Hazlo antes de retirar el ejemplo: sin sus
-   tests, el comando de Python no tiene nada que ejecutar.
+   `docs/hooks.md` (H1 y H2). Si los tests no viven en `tests/`, cambia
+   también esa carpeta en la sección 3 de `init.sh`, que busca en ella los
+   tests del mapa de trazabilidad. Hazlo antes de retirar el ejemplo: sin
+   sus tests, el comando de Python no tiene nada que ejecutar.
+
+   Acuerda también con el humano el análisis estático (linter, comprobación
+   de tipos, reglas de imports) y escríbelo en el bloque «Proyecto» de
+   `lint.sh`: el linter estándar del stack configurado con las reglas de
+   `docs/conventions.md`, y chequeos propios solo para lo que ninguna
+   herramienta cubra. Comprueba que pasa sobre el código que ya existe; lo
+   que no cumpla se arregla o se anota como excepción conocida con su
+   `D<n>`. Después borra la línea `SIN_CONFIGURAR`. Si el humano decide no
+   tener análisis estático, borra igualmente la línea y anota su decisión en
+   ese bloque.
 5. **Ejemplo**: si el proyecto ya tiene código propio o su stack no es
    Python, retíralo ahora (sección siguiente). Si empieza de cero y usa
    Python, se queda hasta el cierre de la primera feature real.
@@ -92,13 +110,15 @@ que ya existe.
      el archivo del mismo nombre en `docs/`, y `checkpoints.md` con C3 y C4
      de `CHECKPOINTS.md`. Los que sigan sin rellenar conservan su ejemplo y
      se lo dices al humano.
+   - De `lint.sh`, el bloque «Ejemplo» y su llamada.
 2. **Pide confirmación al humano** con esa lista. Si el proyecto no está en
    git, el borrado no se puede deshacer. Sin un "sí", no borres nada.
 3. **Con el "sí"**:
    a. Lanza un `implementer` con la lista exacta de archivos de `src/` y
       `tests/` que hay que borrar; tú no puedes tocar esas carpetas.
    b. Borra tú el resto: las features de ejemplo, `specs/example/`,
-      `progress/example/` y los archivos de `docs/example/` de la lista.
+      `progress/example/`, los archivos de `docs/example/` de la lista y el
+      bloque «Ejemplo» de `lint.sh`.
    c. Sustituye los tres ejemplos de `docs/specs.md` (EARS, tasks y
       trazabilidad) por fragmentos de la primera feature real: dos
       requirements de su `requirements.md`, dos tasks de su `tasks.md` y su

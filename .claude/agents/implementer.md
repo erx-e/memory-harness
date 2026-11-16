@@ -50,13 +50,16 @@ el leader te pasa en el prompt, siguiendo su spec ya aprobado en
    b. Implementa el cambio que indica la task.
    c. Si la task incluye un test, escríbelo.
    d. Marca `[x] T<n>` en `tasks.md`.
-5. **Verifica** ejecutando `./init.sh`, una vez, al terminar las tasks. Si
-   falla → vuelve al paso 4. Mientras trabajas no hace falta: el hook H2 ya
-   lanza los tests tras cada edición.
-6. **Trazabilidad**: confirma que cada `R<n>` está cubierto por al menos
+5. **Trazabilidad**: confirma que cada `R<n>` está cubierto por al menos
    un test concreto y anota el mapa `R<n>` → test en tu informe.
-7. **Completa tu informe** en `progress/impl_<name>.md` con el formato de
+6. **Completa tu informe** en `progress/impl_<name>.md` con el formato de
    más abajo.
+7. **Verifica** ejecutando `./init.sh`, una vez, con el informe ya escrito:
+   además del análisis estático (`lint.sh`) y los tests, comprueba el mapa
+   de trazabilidad y las tasks del informe. Si falla, corrige lo que diga
+   (en el código vuelves al paso 4) y repite. Anota el resultado en
+   «Verificación». Mientras trabajas no hace falta: el hook H2 ya lanza los
+   tests tras cada edición.
 8. **Deja la feature en `in_progress`.** No toques su `status` ni lances un
    `reviewer`: el leader lanza la revisión y cierra la feature cuando el
    veredicto es `APPROVED` y el humano da su aprobación final.
@@ -91,14 +94,16 @@ informe.
 
 ## Tasks
 
-<Tasks T1..Tn marcadas `[x]` en `specs/<name>/tasks.md`. Justifica aquí
-cualquiera que quede en `[ ]`.>
+<Tasks T1..Tn marcadas `[x]` en `specs/<name>/tasks.md`. Por cada una que
+quede en `[ ]`, una línea `- T<n>: <por qué>`; `./init.sh` falla si falta.>
 
 ## Lecciones
 
 <Lo que serviría a quien haga la siguiente feature: un bug difícil de
 rastrear (síntoma, causa, solución), un enfoque que probaste y no funcionó,
-o algo fuera del alcance que viste y no tocaste (archivo:línea). El leader
+o algo fuera del alcance que viste y no tocaste (archivo:línea). Si se puede
+comprobar sin juicio, di cómo: un chequeo en `lint.sh` o `init.sh`, un hook
+o un helper. El leader lo codifica en lugar de escribir otra instrucción, o
 lo pasa a `docs/lessons.md` y a `progress/pending.md`. "Ninguna" si no hay.>
 
 ## Estado
@@ -120,7 +125,7 @@ el `acceptance` que trae el prompt.
   motivo en `progress/impl_<name>.md` y respondes
   `blocked -> progress/impl_<name>.md`. Qué hacer con la feature lo decide
   el humano.
-- Ejecuta `./init.sh` y completa el informe igual que siempre. En
+- Completa el informe y ejecuta `./init.sh` igual que siempre. En
   "Trazabilidad" y "Tasks" escribe «No aplica: feature sin spec».
 
 ## Excepción: retirada del ejemplo

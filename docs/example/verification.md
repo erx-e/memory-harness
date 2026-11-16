@@ -49,6 +49,7 @@ rm /tmp/notes_demo.json
 
 Cada `R<n>` del spec tiene al menos un test concreto en `tests/`. La regla y
 el formato del mapa `R<n>` → test están en `docs/specs.md` › "Trazabilidad".
+`./init.sh` comprueba que el mapa está completo y que sus tests existen.
 
 ## Arrancar la interfaz web
 
@@ -60,7 +61,8 @@ no abre el navegador en sus features.
 - ❌ "He añadido el comando, debería funcionar." → falta test ejecutable.
 - ❌ Test que solo verifica que la función no lanza excepción. → tiene que
   comprobar el resultado concreto.
-- ❌ `mock` del filesystem. → usa `tempfile.TemporaryDirectory()` real.
+- ❌ `mock` del filesystem. → usa `tempfile.TemporaryDirectory()` real (lo
+  comprueba `lint.sh`).
 - ❌ Marcar la feature como `done` sin pasar `./init.sh`.
 
 ## Trampas del entorno
