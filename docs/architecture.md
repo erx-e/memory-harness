@@ -31,9 +31,10 @@ suelen necesitar uno:
   (en disco, en base de datos o en servicios externos) se completan enteras o
   no se hacen.
 
-El primero es fijo. Sin la dirección de dependencias escrita, un revisor no
-puede rechazar un import en sentido contrario: lo que no está en este archivo
-no es un requisito.
+Los dos primeros son fijos. Sin la dirección de dependencias escrita, un
+revisor no puede rechazar un import en sentido contrario, y sin las fronteras
+escritas no puede distinguir una validación que falta de una que sobra: lo que
+no está en este archivo no es un requisito.
 
 1. **Capas y dirección de dependencias.** <Qué capas o módulos existen y en
    qué único sentido se importan. Lo habitual: el dominio no conoce la
@@ -47,7 +48,72 @@ no es un requisito.
    las dos capas.> Si el proyecto tiene una sola capa, dilo aquí en una
    línea; no borres el principio.
 
-2. **<Nombre del principio>.** <Regla concreta y qué hacer ante la excepción.>
+2. **Fronteras y validación.** La validación, el estrechamiento de tipos
+   (*type narrowing*) y el manejo de errores van en las fronteras del
+   sistema. Se confía en el código interno sin condiciones. La lógica de
+   negocio vive en funciones puras, y la capa externa (el *shell*: lo que
+   recibe la entrada y llama al resto) es delgada y mecánica. Aplica al
+   escribir validación, manejo de errores o adaptadores de un framework.
+
+   <Las fronteras de este proyecto, una por línea: por dónde entran o salen
+   datos de fuera (argumentos de la línea de comandos, archivos de
+   configuración, APIs externas, protocolos de red, archivos o bases de
+   datos), qué archivo o capa los valida y en qué tipo del dominio se
+   convierten.>
+
+   **Por qué:** la validación dispersa es ruidosa, redundante y da una falsa
+   sensación de seguridad. Mantener la lógica fuera del cableado del
+   framework permite probarla sin el framework.
+
+   **El patrón:**
+
+   - **En las fronteras** (argumentos de la línea de comandos, archivos de
+     configuración, APIs externas, protocolos de red): se valida, se
+     devuelven errores y se actúa a la defensiva.
+   - **Dentro del sistema:** datos tipados, propagación de errores y ninguna
+     revalidación. Se confía en los tipos. Cómo traduce los errores la capa
+     externa lo fija `docs/conventions.md` › Manejo de errores.
+   - **A través de la frontera:** se exponen conceptos del dominio, no la
+     representación privada de la frontera. El mecanismo de propósito
+     general va dentro y la política de propósito específico, en el borde.
+
+   **Aplicaciones:**
+
+   Validación y manejo de errores:
+
+   - La configuración se valida al leerla (en la frontera), no dentro de la
+     lógica de negocio.
+   - Los datos crudos se convierten en tipos del dominio en la frontera.
+   - La interfaz pública no reexporta tipos de transporte, de
+     almacenamiento, del framework ni del formato de transmisión (*wire*).
+   - Si la frontera ya validó, no hay comprobaciones de nulos redundantes en
+     lo profundo de la cadena de llamadas.
+
+   Organización del código:
+
+   - La lógica de negocio va en funciones puras, sin dependencias del
+     framework.
+   - Las funciones de parseo son transformaciones puras de bytes crudos a
+     estado tipado.
+   - Construir un prompt (o cualquier texto generado): entra estado
+     estructurado, sale un string.
+   - Puntuar y evaluar (o cualquier cálculo de resultados): transformaciones
+     puras del estado a los resultados.
+
+   **Las dos preguntas para comprobarlo:**
+
+   - «¿Este dato está cruzando una frontera del sistema ahora mismo?» Si no,
+     validarlo es redundante.
+   - «¿Esto puede ser una función pura a la que la capa externa solo llama?»
+     Si puede, extráela.
+
+   Este principio es la disciplina de fronteras, la política que recomienda
+   la plantilla, y al rellenarla se conserva entero; el original, del que es
+   traducción, está en `.claude/boundary-discipline/`. Si el humano elige otra
+   política de validación, sustitúyelo por la suya, y si el proyecto no recibe
+   datos de fuera, dilo aquí en una línea. No borres el principio.
+
+3. **<Nombre del principio>.** <Regla concreta y qué hacer ante la excepción.>
 
 ## Stack y dependencias
 

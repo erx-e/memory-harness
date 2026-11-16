@@ -1,0 +1,7 @@
+Origen: https://github.com/cursor/plugins (commit d7cde2b), pstack/skills/principle-boundary-discipline/SKILL.md
+Licencia: MIT, ver LICENSE (Copyright (c) 2026 Lauren Tan)
+Copiada: 2026-11-16, sin modificaciones. Se renombró SKILL.md a principle-boundary-discipline.md y se guarda fuera de
+.claude/skills/ para que no se cargue como skill: ningún agente lee este archivo.
+Uso: traducida y adaptada como principio 2, «Fronteras y validación», de docs/architecture.md, y como principio 7 de su
+gemelo docs/example/architecture.md.
+Actualizar: si cambia el original, revisar esos dos principios.

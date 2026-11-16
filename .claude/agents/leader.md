@@ -153,9 +153,11 @@ si lo hay, díselo al humano.
 
 **Técnica.** Es la de la skill `grilling` de mattpocock/skills, incluida en
 el proyecto en `.claude/skills/grilling/` junto con su atajo `grill-me`.
-Léela con `Read` desde esa ruta, no la invoques con la herramienta Skill:
-puede haber una copia global de otra versión con el mismo nombre. Aplícala
-con estas adaptaciones:
+Léela con `Read` desde esa ruta: no tienes la herramienta Skill, y con el
+mismo nombre ganaría una copia global, que puede ser de otra versión (el
+porqué, en `README.md` › Cómo usan las skills). Si el humano escribe
+`/grill-me`, su instrucción de llamar a la herramienta Skill no aplica: lee
+`grilling` desde esa ruta. Aplícala con estas adaptaciones:
 
 - **Punto de partida**: la `description` y el `acceptance` de la feature, el
   brief y el índice de lecciones de los docs del proyecto (`AGENTS.md` §3).

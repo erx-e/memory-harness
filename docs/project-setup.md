@@ -32,9 +32,15 @@ de `pending` con ellos.
      y se anota como `Q<n>` en `progress/pending.md`. Nunca dejes el hueco:
      un hueco no es una regla, y el agente que lo lea rellenará el vacío con
      lo que tenga más cerca.
-   - En `docs/architecture.md` › Principios, el de capas y dirección de
-     dependencias no se omite: di qué capa puede importar a cuál, o que el
-     proyecto tiene una sola.
+   - En `docs/architecture.md` › Principios, los dos primeros no se omiten.
+     En el de capas, di qué capa puede importar a cuál, o que el proyecto
+     tiene una sola. En el de fronteras, escribe por dónde entran los datos
+     de fuera y dónde se validan, y pregunta al humano si adopta la
+     disciplina de fronteras que trae la plantilla: si la adopta, su texto se
+     conserva entero; si elige otra política, escribe la suya; si el
+     proyecto no recibe datos de fuera, dilo en una línea. Lo que el código
+     existente no cumpla se anota como excepción conocida con su `D<n>`, como
+     en `docs/example/architecture.md`.
    - Al rellenar un archivo, quita su nota «Plantilla» y el texto que solo
      explica cómo rellenarlo. Los agentes leen estos archivos en cada
      feature: lo que no es una regla del proyecto solo gasta contexto.

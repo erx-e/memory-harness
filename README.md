@@ -198,6 +198,33 @@ o tres subagentes `Explore` para investigar el código.
 | implementer | `architecture.md`, `conventions.md` y `verification.md` enteros; el índice y los callejones sin salida de `lessons.md`, más las lecciones que comparten tags con su feature; y el spec completo |
 | reviewer | Lo mismo que el implementer, más las reglas del spec de `docs/specs.md`, `CHECKPOINTS.md`, su guía de revisión, el informe del implementer, el código cambiado y lo que conecta `./memory.sh` con la feature |
 
+### Cómo usan las skills
+
+Ningún agente tiene la herramienta `Skill`, y es una decisión. Las skills del
+proyecto se leen con `Read` desde su ruta, en el paso del protocolo que lo
+indica: `grilling` en la entrevista del leader, y `playwright-cli` y
+`chrome-devtools-cli` en la revisión de UI
+([`docs/ui-review.md`](docs/ui-review.md)). Si una skill choca con las reglas
+del arnés, mandan las reglas.
+
+- **Con la herramienta, cada agente vería también tus skills personales**
+  (`~/.claude/skills/`) y podría invocarlas cuando su descripción le pareciera
+  oportuna: revisiones, registros de decisiones o escrituras fuera del
+  repositorio que compiten con el flujo. El arnés se comportaría distinto en
+  cada máquina.
+- **Con el mismo nombre, la skill personal gana a la del proyecto**, también
+  al precargarla con `skills:`, que sale del mismo conjunto. Solo la lectura
+  por ruta garantiza la versión del repositorio.
+- **El proyecto no puede evitarlo de forma general.** `skillOverrides` oculta
+  skills por su nombre, y la plantilla no sabe cuáles tendrá cada usuario.
+
+Para añadir una skill, ponla en `.claude/skills/<nombre>/` (con `LICENSE` y
+`SOURCE.txt` si es de terceros) y añade al protocolo del agente que la use una
+línea que diga en qué paso la lee y con qué condición. Sin esa línea, ningún
+agente la usa. Si un proyecto llega a tener skills sin un momento claro de
+uso, la alternativa es dar `Skill` a los agentes con un hook que solo deje
+pasar las de `.claude/skills/`.
+
 ### Dónde deja su rastro cada uno
 
 | Archivo | Quién lo escribe | Qué contiene |
@@ -583,7 +610,7 @@ Las reglas del proyecto son siete archivos: `docs/brief.md`,
 
 | Archivo | Qué fija |
 |---|---|
-| [`docs/architecture.md`](docs/architecture.md) | Principios (el primero es obligatorio: qué capa puede importar a cuál), stack, carpetas con una tabla de «dónde va cada cosa nueva», flujo de datos y qué no hacer |
+| [`docs/architecture.md`](docs/architecture.md) | Principios (los dos primeros son obligatorios: qué capa puede importar a cuál, y dónde se valida lo que entra de fuera), stack, carpetas con una tabla de «dónde va cada cosa nueva», flujo de datos y qué no hacer |
 | [`docs/conventions.md`](docs/conventions.md) | Estilo y formateador, nombres, estructura de cada archivo, tests (con nombres que describen lo que comprueban), errores y comentarios |
 | [`docs/verification.md`](docs/verification.md) | Niveles de verificación con sus comandos, cómo arrancar la interfaz web, prácticas que no cuentan como verificación y trampas del entorno con el error literal |
 | [`docs/tags.md`](docs/tags.md) | La lista cerrada de tags y lo que cubre cada uno (ver [Tags](#tags)) |
@@ -901,6 +928,7 @@ pendientes (`Q<n>`). Todo lo demás lo conduce el leader.
 ├── .claude/
 │   ├── settings.json      # Agente principal, hooks y permisos
 │   ├── agents/            # leader, spec_author, implementer, reviewer
+│   ├── boundary-discipline/ # Original del principio de fronteras (no es una skill)
 │   ├── code-review/       # Guía de revisión del reviewer
 │   └── skills/            # grilling, grill-me, playwright-cli, chrome-devtools-cli
 ├── src/                   # Código de la aplicación (al principio, el del ejemplo)
@@ -944,6 +972,10 @@ pendientes (`Q<n>`). Todo lo demás lo conduce el leader.
 - La skill `playwright-cli` viene del paquete npm `@playwright/cli` de
   [microsoft/playwright-cli](https://github.com/microsoft/playwright-cli)
   (Apache 2.0, Microsoft Corporation).
+- El principio «Fronteras y validación» de `docs/architecture.md` es una
+  traducción adaptada de la skill `principle-boundary-discipline` de
+  [pstack](https://github.com/cursor/plugins/tree/main/pstack) (MIT, Lauren
+  Tan). El original está en `.claude/boundary-discipline/`.
 
 Las carpetas de estos componentes incluyen su licencia y un `SOURCE.txt` con
 su origen. El resto del repositorio se distribuye bajo la licencia
