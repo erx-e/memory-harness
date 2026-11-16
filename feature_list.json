@@ -80,6 +80,22 @@
       "sdd": true,
       "example": true,
       "status": "pending"
+    },
+    {
+      "id": 12,
+      "name": "storage_test_line_length",
+      "title": "Línea de 104 caracteres en test_storage",
+      "tags": ["tests"],
+      "description": "Parte la línea 24 de tests/test_storage.py, que mide 104 caracteres, para que cumpla la longitud máxima de línea del ejemplo. La detectó lint.sh: «104 caracteres: parte la línea, el máximo es 100».",
+      "acceptance": [
+        "Ninguna línea de tests/test_storage.py pasa de 100 caracteres",
+        "El test conserva los mismos datos y comprueba lo mismo: solo cambia cómo se parte la línea",
+        "./init.sh termina en verde, con el análisis estático (lint.sh) y los tests"
+      ],
+      "sdd": false,
+      "example": true,
+      "status": "done",
+      "closed": "2026-11-16"
     }
   ]
 }

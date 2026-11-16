@@ -55,6 +55,7 @@ al cerrarla, sin moverse de su carpeta.
 | `docs/ui-review.md`          | Cómo revisar una interfaz web                                               | El reviewer, solo si la feature toca UI | Largo plazo, de consulta |
 | `graphify-out/`              | Grafo, wiki (`wiki/index.md`) e informe (`GRAPH_REPORT.md`) del repositorio | Nunca directamente: se consulta con `graphify` | — (herramienta de búsqueda) |
 | `memory.sh`                  | Consulta la memoria por tags e ids: qué entradas conectan y dónde leerlas    | En los pasos que marca cada protocolo | — (herramienta de búsqueda) |
+| `lint.sh`                    | Análisis estático del código: las reglas de los docs que se comprueban sin juicio | Nadie lo lee: lo ejecuta `./init.sh`, y cada fallo dice dónde, qué hacer y qué doc fija la regla | — (herramienta de verificación) |
 | `.claude/agents/`            | Definiciones de `leader`, `spec_author`, `implementer` y `reviewer`         | Cada agente recibe la suya; no leas las demás | Inmediata (cada agente, la suya) |
 | `src/`, `tests/`             | Código de la aplicación y tests automáticos                                 | Para implementar y verificar | — (el proyecto en sí) |
 | `docs/example/`, `specs/example/`, `progress/example/` | Lo del proyecto de muestra: sus docs, specs, informes, bitácora y pendientes | Solo en features con `"example": true` | Largo plazo, de consulta (inmediata en una feature de ejemplo) |
@@ -99,7 +100,9 @@ al cerrarla, sin moverse de su carpeta.
   mismo (por ejemplo, escribir en `src/` con Bash cuando el hook te impide
   hacerlo con `Edit`).
 - **Deja el repositorio limpio**: sin archivos temporales, sin `print()` de
-  debug y sin TODOs sin contexto.
+  debug y sin TODOs sin contexto (un TODO cita la feature, la deuda o la
+  decisión que lo resuelve: `F-<id>`, `D<n>` o `Q<n>`). En el código que
+  cubre, lo comprueba `lint.sh`.
 - **Si no sabes algo, busca en `docs/`** antes de inventarlo.
 - **Consulta el grafo antes de leer código.** Para saber dónde está algo, qué
   lo usa o qué se rompe al cambiarlo, empieza por `graphify explain "<símbolo>"`

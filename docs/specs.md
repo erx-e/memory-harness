@@ -95,6 +95,11 @@ Reglas duras:
   el archivo como estaba». Bien: «SI falla la escritura ENTONCES el
   sistema NO DEBE modificar el archivo».
 
+`./init.sh` comprueba el formato `## R<n>`, los ids repetidos, los seis
+patrones y que haya un solo `DEBE` o `NO DEBE` por requirement. Que sea
+verificable y que una negativa no vaya disfrazada pide juicio: lo revisan
+el humano y el reviewer.
+
 Ejemplo:
 
 ```markdown
@@ -144,7 +149,7 @@ Regla anti-sobreingeniería (regla dura):
 ## tasks.md — checklist ejecutable
 
 Pasos discretos en orden, cada uno con checkbox. Cada task referencia al
-menos un `R<n>` que cubre.
+menos un `R<n>` que cubre (`./init.sh` lo comprueba).
 
 Ejemplo:
 
@@ -155,8 +160,9 @@ Ejemplo:
 - [ ] T4 — Añadir `test_recent_invalid_limit` en `tests/test_cli.py`. Cubre: R2.
 ```
 
-El `implementer` marca `[x]` cada task al completarla. El `reviewer`
-rechaza si queda alguna `[ ]` sin justificación documentada.
+El `implementer` marca `[x]` cada task al completarla. Si alguna queda en
+`[ ]`, su informe dice por qué en una línea `- T<n>: <motivo>`: `./init.sh`
+falla sin ella, y el `reviewer` juzga si el motivo vale.
 
 ## Trazabilidad (regla dura)
 
@@ -165,8 +171,9 @@ citan.
 
 - Cada test en `tests/` debe poder mapearse a un `R<n>` de su spec.
 - Cada `R<n>` debe tener al menos un test concreto.
-- El `reviewer` comprueba esta correspondencia explícitamente y rechaza
-  si falta.
+- `./init.sh` comprueba que el mapa da a cada `R<n>` al menos un test y
+  que ese test existe en `tests/`. El `reviewer` comprueba lo que pide
+  juicio, que cada test verifica de verdad su `R<n>`, y rechaza si no.
 
 El `implementer` documenta el mapa en `progress/impl_<name>.md`, con este
 formato:

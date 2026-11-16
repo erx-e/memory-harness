@@ -11,10 +11,13 @@
    - `notes.py` — modelo de dominio (`Note`).
    - `cli.py` — interfaz de usuario (argparse).
    No introducir capas adicionales (servicios, repositorios, ORMs) hasta que
-   haya una razón concreta documentada en `feature_list.json`.
+   haya una razón concreta documentada en `feature_list.json`. Un módulo
+   nuevo en `src/` lo detecta `lint.sh`.
 
 2. **Sin dependencias externas.** Solo stdlib de Python. Si una feature
-   requiere una dependencia, primero se discute (estado `blocked`).
+   requiere una dependencia, primero se discute (estado `blocked`). Un
+   import de fuera de la stdlib, un `requirements.txt` con contenido o un
+   `pyproject.toml` los detecta `lint.sh`.
 
 3. **Errores explícitos.** Las funciones que pueden fallar (id no existe,
    archivo corrupto) lanzan excepciones nombradas, no devuelven `None`.
@@ -36,7 +39,7 @@
    | `notes.py`   | stdlib                      | `storage`, `cli`   |
    | `storage.py` | stdlib                      | `notes`, `cli`     |
 
-   Se comprueba leyendo las líneas `import` de cada módulo de `src/`.
+   Lo comprueba `lint.sh`.
 
 7. **Fronteras y validación.** La validación, el estrechamiento de tipos
    (*type narrowing*) y el manejo de errores van en las fronteras del
@@ -129,7 +132,7 @@ Todo lo de la columna central es biblioteca estándar de Python.
   (`python3 -m src.cli`).
 - **`str | None` en las anotaciones funciona en Python 3.9 solo porque cada
   módulo empieza con `from __future__ import annotations`.** Un módulo nuevo
-  sin esa línea falla al importarse en 3.9.
+  sin esa línea falla al importarse en 3.9; `lint.sh` lo detecta.
 - **El archivo de datos es `.notes.json`, en la carpeta desde la que se
   ejecuta el comando,** salvo que la variable de entorno `NOTES_FILE` indique
   otra ruta. La variable se lee una sola vez, al importar `src/storage.py`
@@ -176,8 +179,6 @@ usuario  ─→  cli.py (argparse)
 
 - No usar `print()` para errores. Usa `sys.stderr` y exit code != 0.
 - No mezclar IO con lógica de dominio dentro de `notes.py`.
-- No importar `storage` ni `cli` desde `notes.py`, ni `notes` ni `cli` desde
-  `storage.py` (Principio 6). Lo que necesite a los dos va en `cli.py`.
 - No leer/escribir el archivo en cada operación dentro de un bucle.
   Carga al inicio, modifica en memoria, guarda al final.
 - No añadir un sistema de configuración. La ruta del archivo se pasa

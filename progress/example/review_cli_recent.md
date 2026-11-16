@@ -34,8 +34,6 @@
 - T4: [x]
 - T5: [x]
 - T6: [x]
-- T7: [x]
-- T8: [x]
 
 ## Checkpoints
 - C1: [x]

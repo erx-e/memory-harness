@@ -7,7 +7,7 @@
 # Salida esperada: códigos de salida claros y bloques marcados con [OK]/[FAIL].
 #
 # Uso:
-#   ./init.sh            verificación completa (tests y grafo incluidos)
+#   ./init.sh            verificación completa (análisis estático, tests y grafo)
 #   ./init.sh --status   solo validaciones rápidas y el estado del trabajo;
 #                        lo usa el hook SessionStart para que cada sesión
 #                        empiece con el estado real y no con lo último escrito
@@ -46,7 +46,7 @@ ok "Versión de Python compatible"
 echo ""
 echo "── 2. Verificando archivos base del arnés ──────────────"
 
-for f in AGENTS.md memory.sh feature_list.json progress/current.md progress/pending.md docs/brief.md docs/architecture.md docs/conventions.md docs/verification.md docs/lessons.md docs/tags.md CHECKPOINTS.md; do
+for f in AGENTS.md memory.sh lint.sh feature_list.json progress/current.md progress/pending.md docs/brief.md docs/architecture.md docs/conventions.md docs/verification.md docs/lessons.md docs/tags.md CHECKPOINTS.md; do
   if [ ! -f "$f" ]; then
     fail "Falta archivo base: $f"
     EXIT_CODE=1
@@ -246,6 +246,24 @@ try:
                     memory_errors.append(f"{path}: {lid} no tiene fila en el índice, así que no tiene tags")
                 else:
                     memory_errors += tag_errors(index[lid], f"{path} › {lid}", example)
+        # Cada lección activa dice qué la hace cumplir: un chequeo, la D<n> que
+        # lo creará o el juicio de quien la lee (leader.md › «Codificar las
+        # lecciones en estructura»). Una D<n> citada sigue abierta en pending.md.
+        debts_path = os.path.join("progress", "example", "pending.md") if example else os.path.join("progress", "pending.md")
+        open_debts = set(re.findall(r"^#{3,4} (D\d+)\b", read_text(debts_path, strip_code=True) or "", flags=re.M))
+        for lid, block in (parsed[active] or ({}, {}))[0].items():
+            field = re.search(r"^- \*\*Mecanismo:\*\*(.*?)(?=^- \*\*|^#|\Z)", block, flags=re.M | re.S)
+            if not field or not field.group(1).strip():
+                memory_errors.append(
+                    f"{active} › {lid} no tiene «- **Mecanismo:**»: di qué lo comprueba sin juicio, "
+                    "qué D<n> lo hará o por qué requiere juicio"
+                )
+                continue
+            for debt in sorted(set(re.findall(r"\bD\d+\b", field.group(1))) - open_debts):
+                memory_errors.append(
+                    f"{active} › {lid} cita {debt} como mecanismo, pero ya no está en {debts_path}: "
+                    "pon el chequeo que la resolvió o «Requiere juicio»"
+                )
         entries = (parsed[active] or ({}, {}))[0]
         if len(entries) <= THRESHOLD:
             continue
@@ -272,6 +290,115 @@ try:
         )
     if memory_errors:
         for e in memory_errors:
+            print(f"[FAIL]  {e}")
+        sys.exit(1)
+    # El spec y el informe del implementer, contra las reglas de docs/specs.md
+    # que no piden juicio; el reviewer conserva las que sí. El formato se mira
+    # en el spec de toda feature sin cerrar, también en pending, para que el
+    # spec_author lo compruebe antes de entregarlo; el de una feature done se
+    # comprobó mientras estaba abierta.
+    ears = re.compile(
+        r"(?:(?:CUANDO|MIENTRAS|DONDE) .+?, el sistema|SI .+? ENTONCES el sistema|El sistema)"
+        r" (?:NO )?DEBE\b"
+    )
+    soft_verb = re.compile(r"\bel sistema (?:podría|puede|soporta)\b", re.I)
+    def section(text, title):
+        m = re.search(rf"^## {title}\b[^\n]*\n(.*?)(?=^## |\Z)", text, flags=re.M | re.S)
+        return m.group(1) if m else ""
+    def tests_text():
+        # La carpeta de tests del proyecto: si no es tests/, cámbiala aquí y en
+        # la sección 4 (docs/project-setup.md, paso 4).
+        chunks = []
+        for root, dirs, names in os.walk("tests"):
+            dirs[:] = [d for d in dirs if d != "__pycache__"]
+            for name in names:
+                try:
+                    chunks.append(open(os.path.join(root, name), encoding="utf-8", errors="ignore").read())
+                except OSError:
+                    pass
+        return "\n".join(chunks)
+    format_errors = []
+    for f in features:
+        if not f.get("sdd"):
+            continue
+        spec_dir = os.path.join(area(f, "specs"), f["name"])
+        req = read_text(os.path.join(spec_dir, "requirements.md"), strip_code=True)
+        tasks_md = read_text(os.path.join(spec_dir, "tasks.md"), strip_code=True)
+        reqs = re.findall(r"^## (R\d+)[ \t]*\n(.*?)(?=^#{1,2} |\Z)", req or "", flags=re.M | re.S)
+        rids = [r for r, _ in reqs]
+        tasks = re.findall(r"^- \[([ xX])\] (T\d+)\b(.*?)(?=^- \[|^#{1,3} |\Z)", tasks_md or "", flags=re.M | re.S)
+        open_tasks = [t for state, t, _ in tasks if state == " "]
+        if f["status"] == "done":
+            if open_tasks:
+                format_errors.append(
+                    f"F-{f['id']} ({f['name']}) está done con tasks en [ ] en {spec_dir}/tasks.md: {', '.join(open_tasks)}"
+                )
+            continue
+        where = f"{spec_dir}/requirements.md"
+        if req is not None and not reqs:
+            format_errors.append(f"{where} no tiene requirements con la forma «## R<n>» y su párrafo debajo (docs/specs.md › EARS)")
+        for rid in sorted({r for r in rids if rids.count(r) > 1}):
+            format_errors.append(f"{where}: {rid} está repetido; cada requirement tiene un id propio")
+        for rid, body in reqs:
+            prose = re.sub(r"`[^`\n]*`", "``", " ".join(body.split()))
+            if not ears.match(prose):
+                why = ("usa DEBE o NO DEBE, no un verbo blando" if soft_verb.search(prose)
+                       else "no sigue ninguno de los seis patrones EARS")
+                format_errors.append(f"{where} › {rid} {why} (docs/specs.md › EARS): «{prose[:70]}»")
+            elif len(re.findall(r"\bDEBE\b", prose)) > 1:
+                format_errors.append(f"{where} › {rid} tiene más de un DEBE o NO DEBE: pártelo en dos requirements")
+        for _, tid, body in tasks:
+            cited = re.findall(r"\bR\d+\b", body.split("Cubre:", 1)[1]) if "Cubre:" in body else []
+            if not cited:
+                format_errors.append(
+                    f"{spec_dir}/tasks.md › {tid} no dice qué requirements cubre («Cubre: R1, R2»). Un paso de "
+                    "proceso (escribir la trazabilidad, ejecutar ./init.sh) no es una task: ya está en el protocolo del implementer"
+                )
+            elif req is not None:
+                unknown = sorted(set(cited) - set(rids), key=lambda r: int(r[1:]))
+                if unknown:
+                    format_errors.append(f"{spec_dir}/tasks.md › {tid} cubre {', '.join(unknown)}, que no existe en requirements.md")
+        # El informe del implementer de la feature en curso: el mapa R<n> → test
+        # está completo, sus tests existen y cada task en [ ] dice por qué.
+        impl_path = os.path.join(area(f, "progress"), f"impl_{f['name']}.md")
+        impl = read_text(impl_path, strip_code=True) if f["status"] == "in_progress" else None
+        if impl is None:
+            continue
+        trace = {}
+        for line in section(impl, "Trazabilidad").splitlines():
+            m = re.match(r"\s*- (R\d+)\s*(?:→|->)(.*)", line)
+            if m:
+                trace.setdefault(m.group(1), []).extend(re.findall(r"`([^`]+)`", m.group(2).split("(", 1)[0]))
+        for rid in rids:
+            if not trace.get(rid):
+                format_errors.append(f"{impl_path} › Trazabilidad: {rid} no tiene test («- {rid} → `nombre_del_test`»)")
+        for rid in sorted(set(trace) - set(rids), key=lambda r: int(r[1:])):
+            format_errors.append(f"{impl_path} › Trazabilidad cita {rid}, que no existe en requirements.md")
+        corpus = tests_text()
+        for name in sorted({n for names in trace.values() for n in names}):
+            if not re.search(rf"(?<!\w){re.escape(name)}(?!\w)", corpus):
+                format_errors.append(f"{impl_path} › Trazabilidad cita `{name}`, que no aparece en tests/")
+        reasons = section(impl, "Tasks")
+        for tid in open_tasks:
+            if not re.search(rf"^\s*- {tid}\b\s*[:—–-]", reasons, flags=re.M):
+                format_errors.append(
+                    f"{tid} sigue en [ ] en {spec_dir}/tasks.md y {impl_path} › Tasks no dice por qué («- {tid}: <motivo>»)"
+                )
+    # progress/current.md describe la feature en curso o está en su plantilla:
+    # si conserva una feature ya cerrada, el siguiente spec_author o
+    # implementer recibiría decisiones de otra feature.
+    current = read_text(os.path.join("progress", "current.md"), strip_code=True) or ""
+    current = re.sub(r"<!--.*?-->", "", current, flags=re.S)
+    closed = {f["id"]: f["name"] for f in features if f["status"] == "done"}
+    cited = re.findall(r"Feature en curso:\**[ \t]*(?:F-)?(\d+)", current)
+    cited += re.findall(r"^#{2,3} Decisiones de la entrevista\b[^\n]*?\bF-(\d+)", current, flags=re.M)
+    for fid in sorted({int(i) for i in cited} & set(closed)):
+        format_errors.append(
+            f"progress/current.md conserva F-{fid} ({closed[fid]}), ya cerrada: déjalo en su plantilla "
+            "(leader.md › Cierre de una feature)"
+        )
+    if format_errors:
+        for e in format_errors:
             print(f"[FAIL]  {e}")
         sys.exit(1)
     # Ninguna feature real avanza con los docs del proyecto sin rellenar: las
@@ -303,6 +430,10 @@ try:
     real = [f for f in features if not f.get("example")]
     started = [f for f in real if f["status"] in requires_spec]
     unfilled = {p: h for p in gated if (h := holes(p))}
+    # lint.sh lleva SIN_CONFIGURAR hasta que el leader escribe el análisis
+    # estático del proyecto (docs/project-setup.md, paso 4): es un hueco más.
+    if re.search(r"^SIN_CONFIGURAR=1\b", read_text("lint.sh") or "", flags=re.M):
+        unfilled["lint.sh"] = ["SIN_CONFIGURAR"]
     if unfilled and started:
         s = started[0]
         for p, h in unfilled.items():
@@ -318,9 +449,11 @@ try:
     if real and not unfilled:
         print(f"[OK]    Docs del proyecto sin huecos")
     print(f"[OK]    Specs presentes para features sdd con estado no-pending")
+    print(f"[OK]    Specs con formato válido (EARS, tasks con sus R<n>) y trazabilidad completa en la feature en curso")
     print(f"[OK]    Toda feature done tiene revisión APPROVED")
     print(f"[OK]    Toda feature real done tiene la aprobación del usuario en history.md")
-    print(f"[OK]    Memoria dentro del umbral ({THRESHOLD} features cerradas y {THRESHOLD} lecciones activas) y con tags registrados")
+    print(f"[OK]    progress/current.md sin restos de features cerradas")
+    print(f"[OK]    Memoria dentro del umbral ({THRESHOLD} features cerradas y {THRESHOLD} lecciones activas), con tags registrados y el mecanismo de cada lección")
 except SystemExit:
     raise
 except Exception as e:
@@ -333,7 +466,24 @@ if [ $? -ne 0 ]; then EXIT_CODE=1; fi
 if [ "$STATUS_ONLY" -eq 0 ]; then
 
 echo ""
-echo "── 4. Ejecutando tests ─────────────────────────────────"
+echo "── 4. Análisis estático y tests ───────────────────────"
+
+# lint.sh comprueba sin juicio las reglas del código que lo permiten (ver su
+# cabecera). Como con los tests, en verde se imprime una línea y en rojo, sus
+# fallos, que dicen dónde, qué hacer y qué doc fija la regla.
+if [ -f lint.sh ]; then
+  if LINT_OUT=$(bash lint.sh 2>&1); then
+    ok "Análisis estático en verde ($(printf '%s\n' "$LINT_OUT" | tail -1))"
+  else
+    LINT_LINES=$(printf '%s\n' "$LINT_OUT" | wc -l)
+    if [ "$LINT_LINES" -gt 40 ]; then
+      echo "(primeros 40 de $LINT_LINES fallos; todos: ./lint.sh)"
+    fi
+    printf '%s\n' "$LINT_OUT" | head -40
+    fail "Análisis estático en rojo (lint.sh)"
+    EXIT_CODE=1
+  fi
+fi
 
 # En verde solo se imprime el recuento: la lista de tests crece con la suite y
 # cada agente la pagaría en contexto en cada ejecución. En rojo se imprime la
@@ -490,7 +640,7 @@ echo "── 7. Resumen ──────────────────�
 
 if [ "$STATUS_ONLY" -eq 1 ]; then
   if [ $EXIT_CODE -eq 0 ]; then
-    ok "Validaciones rápidas en verde. Tests y grafo NO ejecutados: usa ./init.sh"
+    ok "Validaciones rápidas en verde. Análisis estático, tests y grafo NO ejecutados: usa ./init.sh"
   else
     fail "Hay validaciones en rojo. Ejecuta ./init.sh y resuélvelas antes de avanzar."
   fi

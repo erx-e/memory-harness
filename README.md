@@ -63,7 +63,7 @@ unos hooks comprueban que se cumple. El sistema tiene seis piezas:
 | Agentes | `leader`, `spec_author`, `implementer` y `reviewer` | Repartir el trabajo y que nadie revise lo suyo |
 | Memoria | Los documentos de [`docs/`](docs/), [`progress/`](progress/) y `specs/` y las listas de features; se consulta con [`memory.sh`](memory.sh) | Que nada dependa de que alguien recuerde |
 | Convenciones | [`docs/architecture.md`](docs/architecture.md), [`docs/conventions.md`](docs/conventions.md), [`docs/verification.md`](docs/verification.md) y [`CHECKPOINTS.md`](CHECKPOINTS.md) | Dejar escrito qué es un buen trabajo |
-| Verificación | [`init.sh`](init.sh) y los hooks de [`.claude/settings.json`](.claude/settings.json) | Que saltarse una regla produzca un fallo |
+| Verificación | [`init.sh`](init.sh), [`lint.sh`](lint.sh) y los hooks de [`.claude/settings.json`](.claude/settings.json) | Que saltarse una regla produzca un fallo, y que lo que se puede comprobar sin juicio no dependa de que alguien lo lea |
 | Contexto | `graphify-out/`, que se genera en local | Encontrar el código sin leerlo entero |
 
 Vocabulario mínimo para leer el resto:
@@ -331,8 +331,11 @@ SI el usuario ejecuta `python -m src.cli recent --limit <N>` con `N <= 0`
 ENTONCES el sistema NO DEBE modificar el archivo de notas.
 ```
 
-Si la descripción de la feature y tu entrevista no bastan, o algo contradice
-el brief, el spec_author no inventa: para y explica por qué.
+Antes de entregar, el spec_author comprueba el formato con
+`./init.sh --status`: los patrones EARS, un solo `DEBE` por requisito y que
+cada task cite requisitos que existen. Si la descripción de la feature y tu
+entrevista no bastan, o algo contradice el brief, el spec_author no inventa:
+para y explica por qué.
 
 ### 3. Primera puerta: apruebas el spec
 
@@ -345,8 +348,9 @@ una entrevista corta sobre ellos y se rehace el spec.
 El leader pasa la feature a `in_progress` y lanza al implementer, que hace
 las tasks en orden. En cada una localiza el código con el grafo, lo cambia,
 escribe su test y marca la casilla. Tras cada edición en `src/` o `tests/`,
-un hook ejecuta los tests. Al terminar ejecuta `./init.sh` y escribe su
-informe con el mapa `R<n> → test`:
+un hook ejecuta los tests. Al terminar escribe su informe, con el mapa
+`R<n> → test`, y ejecuta `./init.sh`, que además de los tests pasa el
+análisis estático (`lint.sh`) y comprueba ese mapa:
 
 ```markdown
 ## Trazabilidad
@@ -362,14 +366,20 @@ El reviewer usa como guía la plantilla
 [`.claude/code-review/code-reviewer.md`](.claude/code-review/code-reviewer.md)
 y comprueba:
 
-- que cada requisito tiene su test y todas las tasks están marcadas;
+- que cada test verifica de verdad su requisito (que el test exista y que
+  las tasks estén marcadas ya lo comprueba `init.sh`);
 - que el código usa los contratos de `design.md` tal cual y no añade nada que
   no pida un requisito;
-- que respeta la arquitectura y las convenciones y, con `graphify affected`,
-  que lo que depende del cambio sigue cubierto por tests;
+- que respeta la arquitectura y las convenciones en lo que `lint.sh` no
+  comprueba y, con `graphify affected`, que lo que depende del cambio sigue
+  cubierto por tests;
 - que no repite un callejón sin salida ni contradice una decisión de la
   memoria conectada (`./memory.sh`), activa o archivada;
 - que `./init.sh` está en verde y se cumplen los checkpoints C1-C4 y C6.
+
+Lo que encuentra y se podría comprobar sin juicio lo marca como
+«codificable», para que el leader lo convierta en un chequeo y no vuelva a
+depender de que alguien lo lea.
 
 Clasifica cada hallazgo como **Crítico** o **Importante**, que bloquean, o
 **Menor**, que no. Si la feature toca una interfaz web, la prueba con
@@ -401,12 +411,14 @@ Cuando respondes «aprobado», el leader:
   antiguas a `feature_archive.json`;
 - añade su resumen a `progress/history.md`, con la línea
   `- **Aprobación del usuario:** sí`;
+- escribe en `lint.sh` o `init.sh` los chequeos que te propuso en el
+  resumen y aprobaste;
 - apunta en `progress/pending.md` como deuda lo que sigue abierto (hallazgos
   menores, lo descartado, recomendaciones) y como decisiones pendientes lo
   que quedó sin decidir, salvo lo que tú descartes;
-- pasa a `docs/lessons.md` lo que sirva a futuras features, con sus tags; si
-  con ellas hay más de 20 lecciones, pasa las menos usadas a
-  `docs/lessons-archive.md`;
+- pasa a `docs/lessons.md` lo que sirva a futuras features y no cubra un
+  chequeo, con sus tags y su mecanismo; si con ellas hay más de 20
+  lecciones, pasa las menos usadas a `docs/lessons-archive.md`;
 - deja `progress/current.md` vacío para la siguiente.
 
 ### Features triviales
@@ -589,6 +601,10 @@ momentos. Y la búsqueda usa solo tags e ids: para buscar texto libre en los
   existe para ellos.
 - **Solo el leader escribe la memoria del proyecto.** Los demás aportan: el
   implementer, su sección «Lecciones»; el reviewer, sus hallazgos.
+- **Lo que se puede comprobar no se apunta: se codifica.** Una regla que un
+  chequeo puede comprobar sin juicio va a `lint.sh` o `init.sh`, no a una
+  lección. Cada lección dice en `**Mecanismo:**` qué la hace cumplir, y
+  `init.sh` falla si falta.
 
 [`docs/example/lessons.md`](docs/example/lessons.md) tiene un ejemplo
 relleno: ADR-02 explica por qué `--limit` lo valida el comando y no
@@ -618,6 +634,9 @@ Las reglas del proyecto son siete archivos: `docs/brief.md`,
 
 La frase clave está en `architecture.md`: **«Si no está aquí, no es un
 requisito»**. El reviewer solo puede rechazar lo que contradice algo escrito.
+Y lo que esas reglas permiten comprobar sin juicio no se queda en texto: lo
+comprueba [`lint.sh`](#el-análisis-estático-lintsh), y el doc solo dice
+«(lo comprueba `lint.sh`)».
 
 Por eso estos archivos vienen como **plantillas con huecos** `<...>`, y su
 versión rellena para el ejemplo está en [`docs/example/`](docs/example/). Un
@@ -663,9 +682,9 @@ Nada se da por terminado sin `./init.sh` en verde.
 | Sección | Qué hace |
 |---|---|
 | 1. Entorno | Comprueba que hay Python 3.9 o superior |
-| 2. Archivos base | Comprueba que existen `AGENTS.md`, `feature_list.json`, `progress/current.md`, `progress/pending.md`, los docs del proyecto y `CHECKPOINTS.md` |
-| 3. Features y specs | Comprueba las reglas del flujo (abajo) |
-| 4. Tests | Ejecuta la suite. En verde solo imprime el recuento, para no gastar contexto |
+| 2. Archivos base | Comprueba que existen `AGENTS.md`, `memory.sh`, `lint.sh`, `feature_list.json`, `progress/current.md`, `progress/pending.md`, los docs del proyecto y `CHECKPOINTS.md` |
+| 3. Features y specs | Comprueba las reglas del flujo, el formato de los specs y la memoria (abajo) |
+| 4. Análisis estático y tests | Ejecuta `lint.sh` y la suite. En verde solo imprime una línea de cada uno, para no gastar contexto |
 | 5. Grafo | Reconstruye el grafo y su wiki. Nunca provoca un fallo |
 | 6. Estado del trabajo | Las features de tu proyecto, lo que espera por ti, la siguiente pendiente, el siguiente id libre, decisiones y deuda abiertas, y git. Del ejemplo solo dice que está incluido como guía |
 | 7. Resumen | `[OK]` o `[FAIL]` y el código de salida |
@@ -685,11 +704,43 @@ La sección 3 es la que convierte el flujo en obligatorio. Falla si:
   cerrada no tiene su fecha `closed`;
 - una feature que ya dejó `pending`, o una lección, no lleva entre 1 y 4
   tags de la lista;
+- una lección no dice en `**Mecanismo:**` qué la hace cumplir, o cita una
+  deuda que ya se cerró;
+- un spec abierto incumple las reglas de [`docs/specs.md`](docs/specs.md)
+  que no piden juicio: un requisito fuera de los seis patrones EARS o con más
+  de un `DEBE`, o una task que no cita qué requisitos cubre; o una feature
+  `done` conserva tasks sin marcar;
+- el informe del implementer de la feature en curso deja un requisito sin
+  test, cita un test que no existe o no explica una task sin marcar;
+- `progress/current.md` conserva una feature ya cerrada;
+- `lint.sh` sigue sin configurar y una feature de tu proyecto ya salió de
+  `pending`;
 - hay ids repetidos, o algo sin cerrar en `feature_archive.json`.
 
 Saltarse una puerta, por tanto, no es solo desobedecer una instrucción: deja
 `init.sh` en rojo, y con `init.sh` en rojo el leader no puede terminar su
 turno.
+
+### El análisis estático: `lint.sh`
+
+[`lint.sh`](lint.sh) comprueba las reglas del código que no piden juicio, y
+lo ejecuta `init.sh` antes de los tests. Cada fallo dice dónde está, qué
+hacer y qué doc fija la regla: el mensaje sustituye a la instrucción, así que
+los docs solo dicen «(lo comprueba `lint.sh`)» y el reviewer no lo revisa
+leyendo. Tiene dos bloques:
+
+| Bloque | Qué comprueba | Quién lo escribe |
+|---|---|---|
+| Proyecto | El análisis estático de tu proyecto: el linter de tu stack (ruff, eslint, golangci-lint…) con las reglas de tus convenciones, y chequeos propios para lo que ninguna herramienta cubra, como la dirección de imports entre capas | El leader, contigo, al preparar el proyecto. Hasta entonces lleva la marca `SIN_CONFIGURAR`, que `init.sh` trata como un hueco de los docs |
+| Ejemplo | Las reglas mecánicas de `docs/example/`: capas, solo biblioteca estándar, `print()` de debug, TODOs sin contexto, un test por módulo, sin mocks del filesystem y el estilo | Viene con la plantilla y se borra al retirar el ejemplo |
+
+Es la pieza principal de una regla del arnés: **las lecciones se codifican**.
+Cuando una corrección se repite (un hallazgo del reviewer, algo que tú
+corriges dos veces, una lección que pide recordar una regla), el leader
+propone convertirla en un chequeo de `lint.sh` o `init.sh` en lugar de
+escribir otra instrucción. Lo que pide juicio sigue en texto, más visible y
+con un ejemplo del fallo (ver la sección «Codificar las lecciones en
+estructura» de [`leader.md`](.claude/agents/leader.md)).
 
 ## Los hooks y los permisos
 
@@ -803,6 +854,7 @@ Todo lo suyo está separado de tu proyecto:
 | [`specs/example/`](specs/example/) | `cli_recent/`, un spec completo y ya implementado |
 | [`progress/example/`](progress/example/) | Su bitácora, sus pendientes e informes reales de implementer, reviewer y exploración |
 | `src/` y `tests/` | El código del CLI (`storage.py`, `notes.py` y `cli.py`) y sus tests |
+| `lint.sh`, bloque «Ejemplo» | Las reglas mecánicas de sus docs, comprobadas con la biblioteca estándar |
 | `feature_list.json` y `feature_archive.json` | Sus features, marcadas con `"example": true` |
 
 Cada plantilla de `docs/` tiene su gemelo relleno:
@@ -849,16 +901,19 @@ Antes de tu primera feature, el leader prepara el proyecto contigo, según
 4. **Comandos de tu stack.** Si no usas Python, hay que cambiar el comando de
    tests en `init.sh` (sección 4) y en `.claude/settings.json` (el hook H2 y
    los permisos). Si tu código no está en `src/` y `tests/`, también las
-   carpetas que vigilan H1 y H2.
+   carpetas que vigilan H1 y H2. Además acordáis el análisis estático (tu
+   linter y lo que deba comprobarse sin juicio) y el leader lo escribe en el
+   bloque «Proyecto» de `lint.sh`.
 5. **Retirar el ejemplo**, cuando toque (abajo).
 
 ### Retirar el ejemplo
 
 El ejemplo se retira entero, de una vez y solo con tu confirmación. El leader
 te enseña la lista exacta de lo que se borra: sus features, su código y sus
-tests, `specs/example/`, `progress/example/` y los archivos de
-`docs/example/` cuya plantilla ya esté rellena. El implementer borra lo de
-`src/` y `tests/`; el leader, el resto.
+tests, `specs/example/`, `progress/example/`, los archivos de
+`docs/example/` cuya plantilla ya esté rellena y el bloque «Ejemplo» de
+`lint.sh`. El implementer borra lo de `src/` y `tests/`; el leader, el
+resto.
 
 | Tu proyecto | Cuándo se retira |
 |---|---|
@@ -881,10 +936,10 @@ deshacer la retirada si algo sale mal.
 | 4 | Entrevista | Preguntas por rondas, tags incluidos; tú confirmas el resumen | skill `grilling`, grafo, `docs/tags.md`, `current.md` |
 | 5 | Spec | Consulta la memoria conectada y escribe tres archivos en `specs/<feature>/` | spec_author, docs, lecciones, `./memory.sh` |
 | 6 | ⏸ Primera puerta | Lees el spec y lo apruebas | — |
-| 7 | Implementación | Tasks una a una, con tests tras cada edición | implementer, H1, H2, grafo |
+| 7 | Implementación | Tasks una a una, con tests tras cada edición; al final, `init.sh` con el análisis estático | implementer, H1, H2, grafo, `lint.sh` |
 | 8 | Revisión | Contra el spec, los docs, los checkpoints y la memoria conectada, en tres rondas como máximo | reviewer, H3, H4, `graphify affected`, `./memory.sh` |
 | 9 | ⏸ Segunda puerta | El leader te resume el cambio y tú lo apruebas | — |
-| 10 | Cierre | Fecha de cierre, historial, deuda, lecciones con tags y archivado de lo que pase de 20 | `feature_list.json`, `history.md`, `pending.md`, `lessons.md` y los archivos de largo plazo |
+| 10 | Cierre | Fecha de cierre, historial, chequeos nuevos, deuda, lecciones con tags y mecanismo, y archivado de lo que pase de 20 | `feature_list.json`, `history.md`, `lint.sh` o `init.sh`, `pending.md`, `lessons.md` y los archivos de largo plazo |
 | — | Al final de cada turno | `init.sh` completo | H6 |
 
 ### Tu papel
@@ -903,6 +958,7 @@ pendientes (`Q<n>`). Todo lo demás lo conduce el leader.
 ├── feature_list.json      # Cola y features cerradas recientes (hasta 20)
 ├── feature_archive.json   # Features cerradas antiguas (largo plazo)
 ├── init.sh                # Verificación e inicialización
+├── lint.sh                # Análisis estático del código (lo ejecuta init.sh)
 ├── memory.sh              # Consulta la memoria por tags e ids
 ├── specs/<feature>/       # Spec de cada feature
 │   ├── requirements.md    # Qué debe hacer (EARS)
@@ -930,6 +986,7 @@ pendientes (`Q<n>`). Todo lo demás lo conduce el leader.
 │   ├── agents/            # leader, spec_author, implementer, reviewer
 │   ├── boundary-discipline/ # Original del principio de fronteras (no es una skill)
 │   ├── code-review/       # Guía de revisión del reviewer
+│   ├── encode-lessons/    # Original del principio de codificar lecciones (no es una skill)
 │   └── skills/            # grilling, grill-me, playwright-cli, chrome-devtools-cli
 ├── src/                   # Código de la aplicación (al principio, el del ejemplo)
 ├── tests/                 # Tests automáticos (al principio, los del ejemplo)
@@ -951,8 +1008,10 @@ pendientes (`Q<n>`). Todo lo demás lo conduce el leader.
 - **Primero el spec y luego el código**: tus decisiones quedan escritas antes
   de programar nada.
 - **Trazabilidad**: cada requisito tiene un test que lo demuestra.
-- **Lo crítico se vigila**: lo que no puede fallar no depende solo de una
-  instrucción; lo comprueba un hook o `init.sh`.
+- **Las lecciones se codifican**: lo que se puede comprobar sin juicio lo
+  comprueba un mecanismo (`init.sh`, `lint.sh`, un hook o un campo que se
+  valida), no una instrucción. El texto queda para lo que pide juicio, más
+  visible y con un ejemplo del fallo.
 
 ## Créditos y licencia
 
@@ -976,6 +1035,10 @@ pendientes (`Q<n>`). Todo lo demás lo conduce el leader.
   traducción adaptada de la skill `principle-boundary-discipline` de
   [pstack](https://github.com/cursor/plugins/tree/main/pstack) (MIT, Lauren
   Tan). El original está en `.claude/boundary-discipline/`.
+- La sección «Codificar las lecciones en estructura» de
+  `.claude/agents/leader.md` es una traducción adaptada de la skill
+  `principle-encode-lessons-in-structure` de pstack (MIT, Lauren Tan). El
+  original está en `.claude/encode-lessons/`.
 
 Las carpetas de estos componentes incluyen su licencia y un `SOURCE.txt` con
 su origen. El resto del repositorio se distribuye bajo la licencia

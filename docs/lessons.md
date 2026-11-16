@@ -19,6 +19,12 @@
 > reutilizan ni se cambian, porque otros archivos los citan. Aquí no va
 > estado (qué está hecho o pendiente).
 >
+> **Antes, ¿se puede codificar?** Lo que un chequeo cubre entero no se
+> escribe aquí, y cada entrada dice en `**Mecanismo:**` qué la hace cumplir
+> (`.claude/agents/leader.md` › «Codificar las lecciones en estructura»).
+> `./init.sh` falla si falta, o si cita una `D<n>` que ya no está en
+> `progress/pending.md`.
+>
 > **Tope: 20 lecciones.** Si al cerrar una feature hay más, el leader mueve a
 > `docs/lessons-archive.md` las menos usadas, con su fila del índice, sin
 > pedir permiso: archivar no es borrar. El último uso de una lección es la
@@ -51,7 +57,10 @@ _Ninguno todavía._
 
 Copia el bloque que corresponda al final de su sección, quita la línea
 "todavía" de esa sección y añade la fila al índice, con entre 1 y 4 tags de
-`docs/tags.md`.
+`docs/tags.md`. En `**Mecanismo:**` va una de estas tres cosas: qué parte
+comprueba qué chequeo (`lint.sh`, `init.sh`, un hook o un helper) y qué
+sigue pidiendo juicio; la `D<n>` que creará el chequeo; o «requiere juicio»
+y por qué.
 
 ```markdown
 | ADR-<n> | <la decisión, en una frase> | `<tag>`, `<tag>` | <archivos, símbolos o tema a los que afecta> |
@@ -62,6 +71,7 @@ Copia el bloque que corresponda al final de su sección, quita la línea
 - **Decisión:** <qué se hace>
 - **Coste aceptado:** <qué se pierde a cambio>
 - **Descartado:** <la alternativa y por qué no>
+- **Mecanismo:** <qué la hace cumplir>
 - **Origen:** F-<id> (<archivo donde está el detalle>)
 
 #### Bug-<n> · <El síntoma, en una frase>
@@ -70,11 +80,13 @@ Copia el bloque que corresponda al final de su sección, quita la línea
 - **Causa:** <la causa real, con archivo:línea>
 - **Solución:** <qué se cambió>
 - **Lección:** <qué hacer distinto la próxima vez>
+- **Mecanismo:** <qué la hace cumplir>
 - **Origen:** F-<id> (<archivo donde está el detalle>)
 
 #### CS-<n> · <El enfoque que no funciona, en una frase>
 
 - **Por qué falla:** <qué pasa si se intenta>
 - **En su lugar:** <qué hacer>
+- **Mecanismo:** <qué la hace cumplir>
 - **Origen:** F-<id> (<archivo donde está el detalle>)
 ```

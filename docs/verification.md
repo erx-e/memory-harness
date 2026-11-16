@@ -35,7 +35,8 @@ Comando:
 
 Cada `R<n>` del spec tiene al menos un test concreto. La regla y el formato
 del mapa `R<n>` → test están en `docs/specs.md` › "Trazabilidad"; no se
-repiten aquí.
+repiten aquí. `./init.sh` comprueba que el mapa está completo y que sus
+tests existen.
 
 ## Arrancar la interfaz web
 
@@ -73,5 +74,7 @@ el leader la registra también en `docs/lessons.md`.
 ./init.sh           # debe terminar con [OK] Entorno listo
 ```
 
-Si `./init.sh` está rojo, el trabajo no está terminado y nada se cierra. Si
-no puedes dejarlo verde, anota el bloqueo en `progress/current.md` y para.
+`./init.sh` ejecuta el análisis estático (`lint.sh`) y los tests, y
+comprueba el spec y el mapa de trazabilidad. Si está rojo, el trabajo no
+está terminado y nada se cierra. Si no puedes dejarlo verde, anota el
+bloqueo en `progress/current.md` y para.

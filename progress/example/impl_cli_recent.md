@@ -47,7 +47,7 @@ No se han tocado `src/notes.py` ni `src/storage.py`, conforme al
 
 ## Tasks
 
-T1..T8 marcadas `[x]` en `specs/example/cli_recent/tasks.md`. Ninguna queda
+T1..T6 marcadas `[x]` en `specs/example/cli_recent/tasks.md`. Ninguna queda
 en `[ ]`.
 
 ## Lecciones

@@ -23,8 +23,7 @@ ni `tests/`. Si lo haces, el reviewer rechaza la feature.
    `name`, `description`, `acceptance`) y sus rutas. En una feature de
    ejemplo, los docs, `specs/<name>/` y los archivos de `progress/` que
    nombra este archivo llevan la subcarpeta `example/` (`AGENTS.md` §3): usa
-   las rutas del prompt. No abras `feature_list.json`. No ejecutas
-   `./init.sh`: no cambias código.
+   las rutas del prompt. No abras `feature_list.json`.
 2. **Lee solo esto.** `AGENTS.md` ya está en tu contexto. Los cinco primeros
    están en la carpeta de docs de tu feature:
 
@@ -72,7 +71,12 @@ ni `tests/`. Si lo haces, el reviewer rechaza la feature.
    `graphify affected "<símbolo>"`) y lee solo las líneas que indique.
 6. Redacta `tasks.md`: pasos discretos en orden, cada uno con `[ ]` y la
    lista de `R<n>` que cubre.
-7. **PARA**. No toques el `status` de la feature: lo cambia el leader al
+7. **Comprueba el formato** con `./init.sh --status`. Valida tu spec contra
+   las reglas de `docs/specs.md` que no piden juicio: los patrones EARS, un
+   solo `DEBE` por requirement y que cada task cite `R<n>` que existen. Si
+   marca algo de tu spec, corrígelo y repite; lo que no sea de tu spec no te
+   toca.
+8. **PARA**. No toques el `status` de la feature: lo cambia el leader al
    recibir tu respuesta. No invoques al implementer.
 
 ## Hooks que te afectan

@@ -24,7 +24,7 @@ llevan la subcarpeta `example/` (`AGENTS.md` §3 «Features de ejemplo»).
 2. Ejecuta `./init.sh`. Si falla, paras y reportas. Su sección "Estado del
    trabajo" es el estado real: si contradice algo escrito en `progress/`,
    manda `./init.sh`. Al iniciar la sesión ya recibiste ese estado en versión
-   rápida (sin tests ni grafo).
+   rápida (sin análisis estático, tests ni grafo).
 3. Aplica el flujo SDD y la tabla de "Escalado de esfuerzo" de este archivo.
 
 ## Flujo Spec Driven Development (obligatorio)
@@ -325,6 +325,57 @@ demás archivos los clasifica la columna «Memoria» del mapa de `AGENTS.md`.
 - Cuando el humano pregunte "qué falta" o "qué está pendiente", responde con
   la cola de `feature_list.json` y con `progress/pending.md`, citando los ids.
 
+## Codificar las lecciones en estructura
+
+Aplica cuando te descubres escribiendo la misma instrucción por segunda vez,
+o cuando notas una corrección que se repite. Codifica la regla como un lint,
+una marca en los metadatos, una comprobación en tiempo de ejecución o un
+script, en lugar de escribir más texto.
+
+Si la lección necesita juicio y no se puede codificar, haz la instrucción
+más visible y añade un ejemplo del fallo.
+
+**Corolario:** si el arreglo es estructural, usa solo el arreglo
+estructural. La instrucción es el síntoma.
+
+En este arnés, cada mecanismo vive aquí:
+
+| Mecanismo | Dónde |
+|-----------|-------|
+| Lint | `lint.sh`, para el código del proyecto; `init.sh`, para specs, informes y memoria |
+| Marca en los metadatos | Un campo que `init.sh` valida: `"sdd"`, `"tags"`, `**Veredicto:**`, `**Mecanismo:**` |
+| Comprobación en tiempo de ejecución | Un hook de `.claude/settings.json`, o una validación en el código |
+| Script | Un comando o una función que hace bien el trabajo: `memory.sh`, un helper del código |
+
+Cómo lo aplicas:
+
+- **Cuándo.** Al cerrar una feature, antes de registrar una lección o una
+  deuda; cuando el reviewer marca un hallazgo como «codificable»; y cuando el
+  humano te corrige algo que ya corrigió antes.
+- **Quién lo escribe.** Lo que vive fuera de `src/` y `tests/` (`lint.sh`,
+  `init.sh`, un hook) lo escribes tú, después de proponérselo al humano: al
+  cerrar una feature, en el resumen con el que pides la aprobación final. Lo
+  que vive en el código (un helper, una validación) lo hace un
+  `implementer`: es una `D<n>`, o una feature si el humano lo decide.
+- **Cómo es un chequeo nuevo.** No da falsos positivos sobre el estado
+  actual: compruébalo antes de dejarlo. Su mensaje dice dónde falla, qué
+  hacer y qué regla lo pide (el doc, o el `F-<id>` o `ADR-<n>` de origen),
+  porque el mensaje sustituye a la instrucción. En el mismo cambio, borra
+  esa instrucción de los docs, o deja solo «(lo comprueba `lint.sh`)».
+- **Qué pasa con la lección.** Si el chequeo cubre la regla entera, no se
+  escribe en `docs/lessons.md`. Si no, la lección lleva su `**Mecanismo:**`
+  (`./init.sh` falla sin él): qué parte comprueba qué chequeo, la `D<n>` que
+  lo creará, o por qué requiere juicio.
+- **Si requiere juicio.** Hacerla más visible es subirla de sitio: de una
+  entrada que solo se abre por sus tags a «Callejones sin salida», que leen
+  todos, o a una regla de `docs/architecture.md` o `docs/conventions.md`, que
+  se leen enteros. El ejemplo del fallo son los campos «Por qué falla»,
+  «Síntoma» y «Descartado»: escríbelos con el caso concreto, no en
+  abstracto.
+
+El original es la skill `principle-encode-lessons-in-structure` de pstack,
+en `.claude/encode-lessons/`.
+
 ## Preparar el proyecto y retirar el ejemplo
 
 Son dos procedimientos de una sola vez por proyecto y están en
@@ -337,8 +388,9 @@ Son dos procedimientos de una sola vez por proyecto y están en
   sección "Retirar el ejemplo".
 
 Lo que tienes que saber sin abrirlo: una feature real no pasa de `pending`
-con huecos `<...>` en los docs del proyecto (`./init.sh` falla), y el
-ejemplo se retira entero, de una vez y solo con el "sí" del humano.
+con huecos `<...>` en los docs del proyecto ni con `lint.sh` sin configurar
+(`./init.sh` falla), y el ejemplo se retira entero, de una vez y solo con el
+"sí" del humano.
 
 ## Cierre de una feature
 
@@ -387,6 +439,10 @@ feature hasta él y la cierras cuando aprueba:
   - Avisa de que los hallazgos Menores, lo descartado y las recomendaciones
     quedarán registrados como deuda en `progress/pending.md`, salvo los que
     el humano diga que se descarten.
+  - Lo que propones codificar al cerrar, según «Codificar las lecciones en
+    estructura»: los hallazgos que el reviewer marcó como «codificable» y lo
+    que la sección «Lecciones» del implementer permita comprobar sin juicio,
+    cada uno con el chequeo y el archivo donde irá.
   - Lo que quedó fuera o pendiente, si hay algo.
   - Las rutas `specs/<name>/`, `progress/impl_<name>.md` y
     `progress/review_<name>.md` para quien quiera el detalle.
@@ -403,15 +459,20 @@ feature hasta él y la cierras cuando aprueba:
   `- **Aprobación del usuario:** sí, AAAA-MM-DD` (`./init.sh` falla sin
   ella en las features que no son del ejemplo). Después registra lo que
   debe durar:
+  - Los chequeos que propusiste y el humano aprobó, en `lint.sh` o en
+    `init.sh`, como indica «Codificar las lecciones en estructura».
   - En `progress/pending.md`, una entrada `D<n>` por cada hallazgo Menor,
     punto descartado por estar fuera del spec y recomendación de
-    `progress/review_<name>.md` que siga abierto y el humano no haya
-    descartado; y una `Q<n>` por cada decisión que quedó sin tomar.
+    `progress/review_<name>.md` que siga abierto, el humano no haya
+    descartado y no hayas codificado; y una `Q<n>` por cada decisión que
+    quedó sin tomar.
   - En `docs/lessons.md`, lo que sirva a features futuras: decisiones de
     `specs/<name>/design.md` que afectan a más de una feature, y los bugs
     difíciles y enfoques descartados (callejones sin salida) de la sección
     "Lecciones" de `progress/impl_<name>.md`, cada uno con su fila y sus
-    tags en el índice. Si pasas de 20 lecciones, archiva las menos usadas
+    tags en el índice. Lo que un chequeo cubre entero no se escribe, y cada
+    lección lleva su `**Mecanismo:**` («Codificar las lecciones en
+    estructura»). Si pasas de 20 lecciones, archiva las menos usadas
     ("Memoria del proyecto"). Si la feature no enseñó nada, no escribas
     nada.
 

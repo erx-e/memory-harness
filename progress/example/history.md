@@ -64,3 +64,11 @@
 - **Cambios:** `src/cli.py` (`cmd_recent` + subparser con `--limit`), `tests/test_cli.py` (5 tests nuevos: orden por defecto, límite custom, archivo vacío, límite 0, límite negativo; helper `_add_with_created_at`).
 - **Verificación:** `./init.sh` verde, 27 tests pasan. Reviewer APPROVED (`progress/example/review_cli_recent.md`); trazabilidad en `progress/example/impl_cli_recent.md`.
 - **Cierre:** F-7 marcada `done`. Próximo: F-8 (cli_count).
+
+## 2026-11-16 — F-12: storage_test_line_length
+- **Agente:** leader → implementer → reviewer. Feature trivial (`"sdd": false`): sin spec ni entrevista.
+- **Plan:** partir `tests/test_storage.py:24` (104 caracteres), el único fallo que la regla de longitud de línea de `lint.sh`, nuevo con «Codificar las lecciones en estructura», encontró en el código del ejemplo.
+- **Cambios:** `tests/test_storage.py` (el dict de `test_save_then_load_roundtrip`, partido en las líneas 24-29 con una clave por línea y coma final; el `ast.dump()` no cambia). Al cerrar, el leader codificó en `lint.sh` cómo se parte una llamada o una colección que no cabe en una línea (la recomendación de la revisión) y corrigió en el informe del implementer la lección del `ast.dump()` (el hallazgo menor).
+- **Verificación:** `./init.sh` verde, con el análisis estático y 27 tests. Reviewer APPROVED en la ronda 1/3 (`progress/example/review_storage_test_line_length.md`); informe en `progress/example/impl_storage_test_line_length.md`.
+- **Aprobación del usuario:** sí, 2026-11-16; pidió arreglar la deuda en lugar de registrarla.
+- **Cierre:** F-12 `done`. Sin deuda nueva: la recomendación quedó codificada, el hallazgo menor corregido, y el punto descartado (el dict de la línea 34) ya cumple la regla nueva. Próximo: F-8 (cli_count).

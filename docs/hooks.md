@@ -109,16 +109,17 @@ también cuando la usa un subagente.
   (SessionStart).
 - **Qué hace:** ejecuta `./init.sh --status` y te añade el bloque «Estado
   real del proyecto»: los `[FAIL]` y `[WARN]` de las validaciones rápidas y
-  la sección «Estado del trabajo». No incluye tests ni grafo.
+  la sección «Estado del trabajo». No incluye el análisis estático, los
+  tests ni el grafo.
 - **Qué haces (leader):** ese estado manda sobre lo escrito en `progress/`.
-  Para tests y grafo, ejecuta `./init.sh`.
+  Para el análisis estático, los tests y el grafo, ejecuta `./init.sh`.
 
 ## H6 — `./init.sh` al terminar el turno
 
 - **Cuándo:** cada vez que la sesión principal termina un turno, antes de
   devolver el control al humano (Stop). No salta al terminar un subagente.
-- **Qué hace:** ejecuta `./init.sh` completo, con tests y grafo. Si pasa,
-  no dice nada.
+- **Qué hace:** ejecuta `./init.sh` completo, con análisis estático, tests
+  y grafo. Si pasa, no dice nada.
 - **Qué verás si falla:** `[harness] init.sh FALLÓ. Resuélvelo antes de
   cerrar la sesión:` y las últimas 20 líneas. No puedes terminar el turno:
   vuelves a tener el control.
