@@ -31,10 +31,11 @@ suelen necesitar uno:
   (en disco, en base de datos o en servicios externos) se completan enteras o
   no se hacen.
 
-Los dos primeros son fijos. Sin la dirección de dependencias escrita, un
-revisor no puede rechazar un import en sentido contrario, y sin las fronteras
-escritas no puede distinguir una validación que falta de una que sobra: lo que
-no está en este archivo no es un requisito.
+Los tres primeros son fijos. Sin la dirección de dependencias escrita, un
+revisor no puede rechazar un import en sentido contrario; sin las fronteras
+escritas no puede distinguir una validación que falta de una que sobra, y sin
+el principio YAGNI no puede rechazar lo que nadie pidió: lo que no está en
+este archivo no es un requisito.
 
 1. **Capas y dirección de dependencias.** <Qué capas o módulos existen y en
    qué único sentido se importan. Lo habitual: el dominio no conoce la
@@ -114,7 +115,44 @@ no está en este archivo no es un requisito.
    política de validación, sustitúyelo por la suya, y si el proyecto no recibe
    datos de fuera, dilo aquí en una línea. No borres el principio.
 
-3. **<Nombre del principio>.** <Regla concreta y qué hacer ante la excepción.>
+3. **Solo lo que pide el spec (YAGNI).** Se construye lo que exige un `R<n>`
+   del spec aprobado (o el `acceptance` de una feature trivial), y nada más.
+   Aplica al escribir requisitos, al diseñar y al implementar.
+
+   **Por qué:** cada línea que nadie pidió hay que leerla, probarla y
+   mantenerla, y casi nunca acierta con la necesidad que imaginaba. Cuando la
+   necesidad llega de verdad, llega con su requisito y se construye para ese
+   uso.
+
+   **El patrón:**
+
+   - **Uso observado, no casos especulativos.** No se añaden parámetros,
+     opciones, configuración, capas, puntos de extensión ni casos límite que
+     ningún requisito pida, aunque «seguro que harán falta».
+   - **Ninguna guarda de más.** Ni validadores, ni parseos, ni comprobaciones
+     más allá de lo que pide el spec. Dónde va la validación que sí se pide
+     lo fija el principio 2.
+   - **El cambio más pequeño.** Se hace el diff mínimo que cumple las tareas:
+     menos líneas ganan a un andamiaje «elegante». Un helper o una
+     abstracción se extrae cuando ya hay varios usos reales, no para uno.
+   - **Restar antes de sumar.** Si el código que la feature modifica tiene
+     algo muerto o redundante, se quita en vez de construir encima. Lo que
+     esté fuera de lo que modifica se anota como `D<n>`, no se toca.
+   - **Lo futuro se anota, no se construye.** Una necesidad que se intuye va
+     a «Fuera de alcance» en la entrevista, o a una `D<n>` en
+     `progress/pending.md`.
+
+   **Las dos preguntas para comprobarlo:**
+
+   - «¿Qué `R<n>` falla si borro esto?» Si ninguno, sobra.
+   - «¿Lo pide el uso real o lo estoy imaginando?» Si lo imaginas, no se
+     construye.
+
+   Este principio es la política que trae la plantilla, y al rellenarla se
+   conserva entero; los originales, de los que es traducción adaptada, están
+   en `.claude/yagni/`. No borres el principio.
+
+4. **<Nombre del principio>.** <Regla concreta y qué hacer ante la excepción.>
 
 ## Stack y dependencias
 

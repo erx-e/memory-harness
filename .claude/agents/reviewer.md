@@ -76,9 +76,14 @@ es una UI web.
    - **Contratos de datos**: los nombres y tipos de campo del código y de
      los tests coinciden exactamente con los de `design.md`. Un campo
      renombrado, con otro tipo o inventado es un hallazgo Importante.
-   - **Anti-sobreingeniería**: toda firma, clase o archivo nuevo del cambio
-     figura en `design.md` y está ligado a un `R<n>`. Lo que no lo esté es
-     una abstracción especulativa: hallazgo Importante.
+   - **Anti-sobreingeniería (YAGNI)**: toda firma, clase o archivo nuevo del
+     cambio figura en `design.md` y está ligado a un `R<n>`. Dentro de lo
+     previsto, aplica `docs/architecture.md` › Solo lo que pide el spec: un
+     parámetro, opción, rama o validación que ningún `R<n>` pide, o código
+     que se puede borrar sin que falle ningún test ni `R<n>`, también sobra.
+     Ambos casos son hallazgo Importante.
+     Un `R<n>` que no sale del `acceptance` ni de la entrevista es un
+     defecto del spec: Menor.
    - Si el defecto está solo en `design.md` y no en el código (falta el
      punto de contratos, o un elemento no cita su `R<n>`), anótalo como
      Menor e indica que es un defecto del spec.

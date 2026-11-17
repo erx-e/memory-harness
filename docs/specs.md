@@ -135,8 +135,15 @@ NO es ingeniería desde primeros principios — apóyate en
 `docs/architecture.md` y `docs/conventions.md`. El `design.md` documenta los
 puntos donde tu feature roza la frontera de esas reglas.
 
-Regla anti-sobreingeniería (regla dura):
+Regla YAGNI, o anti-sobreingeniería (regla dura; el principio es
+`docs/architecture.md` › Solo lo que pide el spec):
 
+- Todo `R<n>` de `requirements.md` DEBE salir del `acceptance` de la
+  feature o de una decisión de la entrevista. Un requisito que no venga de
+  ahí (configurabilidad, un caso límite o una opción que nadie pidió) no se
+  escribe. Si parece necesario, se anota en `design.md` como alternativa
+  descartada, para que el humano lo vea al revisar el spec. Un requisito
+  inventado haría pasar todo lo que cuelgue de él.
 - Toda firma, clase o archivo propuesto en `design.md` DEBE estar
   justificado por al menos un requirement de `requirements.md`: indica
   junto a cada uno los `R<n>` que lo motivan.

@@ -303,7 +303,8 @@ contradecir una decisión. Después escribe tres archivos en
 - **`design.md`**: cómo se va a construir: archivos, firmas, errores, los
   **contratos de datos** con nombres y tipos exactos, y al menos una
   alternativa descartada. Todo lo que propone cita el requisito que lo
-  justifica; lo que no tiene requisito se quita (regla anti-sobreingeniería).
+  justifica; lo que no tiene requisito se quita (regla YAGNI, del principio
+  «Solo lo que pide el spec» de `docs/architecture.md`).
 - **`tasks.md`**: una checklist `T1`, `T2`…, y cada task dice qué requisitos
   cubre.
 
@@ -626,7 +627,7 @@ Las reglas del proyecto son siete archivos: `docs/brief.md`,
 
 | Archivo | Qué fija |
 |---|---|
-| [`docs/architecture.md`](docs/architecture.md) | Principios (los dos primeros son obligatorios: qué capa puede importar a cuál, y dónde se valida lo que entra de fuera), stack, carpetas con una tabla de «dónde va cada cosa nueva», flujo de datos y qué no hacer |
+| [`docs/architecture.md`](docs/architecture.md) | Principios (los tres primeros son obligatorios: qué capa puede importar a cuál, dónde se valida lo que entra de fuera, y construir solo lo que pide el spec, YAGNI), stack, carpetas con una tabla de «dónde va cada cosa nueva», flujo de datos y qué no hacer |
 | [`docs/conventions.md`](docs/conventions.md) | Estilo y formateador, nombres, estructura de cada archivo, tests (con nombres que describen lo que comprueban), errores y comentarios |
 | [`docs/verification.md`](docs/verification.md) | Niveles de verificación con sus comandos, cómo arrancar la interfaz web, prácticas que no cuentan como verificación y trampas del entorno con el error literal |
 | [`docs/tags.md`](docs/tags.md) | La lista cerrada de tags y lo que cubre cada uno (ver [Tags](#tags)) |
@@ -987,7 +988,8 @@ pendientes (`Q<n>`). Todo lo demás lo conduce el leader.
 │   ├── boundary-discipline/ # Original del principio de fronteras (no es una skill)
 │   ├── code-review/       # Guía de revisión del reviewer
 │   ├── encode-lessons/    # Original del principio de codificar lecciones (no es una skill)
-│   └── skills/            # grilling, grill-me, playwright-cli, chrome-devtools-cli
+│   ├── skills/            # grilling, grill-me, playwright-cli, chrome-devtools-cli
+│   └── yagni/             # Originales del principio YAGNI (no son skills)
 ├── src/                   # Código de la aplicación (al principio, el del ejemplo)
 ├── tests/                 # Tests automáticos (al principio, los del ejemplo)
 ├── docs/example/          # Docs rellenos del ejemplo
@@ -1039,6 +1041,10 @@ pendientes (`Q<n>`). Todo lo demás lo conduce el leader.
   `.claude/agents/leader.md` es una traducción adaptada de la skill
   `principle-encode-lessons-in-structure` de pstack (MIT, Lauren Tan). El
   original está en `.claude/encode-lessons/`.
+- El principio «Solo lo que pide el spec (YAGNI)» de `docs/architecture.md`
+  es una traducción adaptada que combina las skills
+  `principle-subtract-before-you-add` y `principle-laziness-protocol` de
+  pstack (MIT, Lauren Tan). Los originales están en `.claude/yagni/`.
 
 Las carpetas de estos componentes incluyen su licencia y un `SOURCE.txt` con
 su origen. El resto del repositorio se distribuye bajo la licencia

@@ -112,6 +112,40 @@
    - «¿Esto puede ser una función pura a la que la capa externa solo llama?»
      Si puede, extráela.
 
+8. **Solo lo que pide el spec (YAGNI).** Se construye lo que exige un `R<n>`
+   del spec aprobado (o el `acceptance` de una feature trivial), y nada más.
+   Aplica al escribir requisitos, al diseñar y al implementar.
+
+   **Por qué:** cada línea que nadie pidió hay que leerla, probarla y
+   mantenerla, y casi nunca acierta con la necesidad que imaginaba. Cuando la
+   necesidad llega de verdad, llega con su requisito y se construye para ese
+   uso.
+
+   **El patrón:**
+
+   - **Uso observado, no casos especulativos.** No se añaden parámetros,
+     opciones, configuración, capas, puntos de extensión ni casos límite que
+     ningún requisito pida: un subcomando de `cli.py` no gana un flag que
+     ningún `R<n>` pida, aunque «seguro que hará falta».
+   - **Ninguna guarda de más.** Ni validadores, ni parseos, ni comprobaciones
+     más allá de lo que pide el spec. Dónde va la validación que sí se pide
+     lo fija el principio 7.
+   - **El cambio más pequeño.** Se hace el diff mínimo que cumple las tareas:
+     menos líneas ganan a un andamiaje «elegante». Un helper o una
+     abstracción se extrae cuando ya hay varios usos reales, no para uno.
+   - **Restar antes de sumar.** Si el código que la feature modifica tiene
+     algo muerto o redundante, se quita en vez de construir encima. Lo que
+     esté fuera de lo que modifica se anota como `D<n>`, no se toca.
+   - **Lo futuro se anota, no se construye.** Una necesidad que se intuye va
+     a «Fuera de alcance» en la entrevista, o a una `D<n>` en
+     `progress/example/pending.md`.
+
+   **Las dos preguntas para comprobarlo:**
+
+   - «¿Qué `R<n>` falla si borro esto?» Si ninguno, sobra.
+   - «¿Lo pide el uso real o lo estoy imaginando?» Si lo imaginas, no se
+     construye.
+
 ## Stack y dependencias
 
 | Pieza                    | Qué se usa                                              | Dónde            |

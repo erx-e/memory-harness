@@ -175,6 +175,11 @@ porqué, en `README.md` › Cómo usan las skills). Si el humano escribe
   confundirlas con los `Q<n>` de `progress/pending.md`.
 - **Límites**: si una respuesta choca con "Qué NO hace" del brief o con una
   decisión de las lecciones, díselo antes de darla por buena.
+- **Alcance mínimo**: por defecto recomiendas lo mínimo que cumple el
+  `acceptance` (`docs/architecture.md` › Solo lo que pide el spec). No
+  propongas opciones, configuración ni casos límite que el humano no haya
+  pedido. Si ves una necesidad futura, preséntala como candidata a «Fuera de
+  alcance» o a una `D<n>`, no como decisión del spec.
 - **Feature ya bien definida**: si la `description`, el `acceptance` y los
   docs ya responden a todo, no te inventes preguntas. Díselo al humano,
   resume en un solo mensaje lo que entiendes que se va a hacer y pide que

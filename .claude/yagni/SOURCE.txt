@@ -1,0 +1,9 @@
+Origen: https://github.com/cursor/plugins (commit 2f87c85), pstack/skills/principle-subtract-before-you-add/SKILL.md y
+pstack/skills/principle-laziness-protocol/SKILL.md
+Licencia: MIT, ver LICENSE (Copyright (c) 2026 Lauren Tan)
+Copiadas: 2026-11-17, sin modificaciones. Se renombró cada SKILL.md con el nombre de su skill y se guardan fuera de
+.claude/skills/ para que no se carguen como skills: ningún agente lee estos archivos.
+Uso: traducidas, combinadas y adaptadas como principio 3, «Solo lo que pide el spec (YAGNI)», de docs/architecture.md, y
+como principio 8 de su gemelo docs/example/architecture.md. Las aplican la regla YAGNI de docs/specs.md, la comprobación
+anti-sobreingeniería de .claude/agents/reviewer.md y la entrevista de .claude/agents/leader.md.
+Actualizar: si cambia alguno de los originales, revisar esos principios y esas secciones.

@@ -33,15 +33,16 @@ un hueco más (paso 4).
      y se anota como `Q<n>` en `progress/pending.md`. Nunca dejes el hueco:
      un hueco no es una regla, y el agente que lo lea rellenará el vacío con
      lo que tenga más cerca.
-   - En `docs/architecture.md` › Principios, los dos primeros no se omiten.
+   - En `docs/architecture.md` › Principios, los tres primeros no se omiten.
      En el de capas, di qué capa puede importar a cuál, o que el proyecto
      tiene una sola. En el de fronteras, escribe por dónde entran los datos
      de fuera y dónde se validan, y pregunta al humano si adopta la
      disciplina de fronteras que trae la plantilla: si la adopta, su texto se
      conserva entero; si elige otra política, escribe la suya; si el
-     proyecto no recibe datos de fuera, dilo en una línea. Lo que el código
-     existente no cumpla se anota como excepción conocida con su `D<n>`, como
-     en `docs/example/architecture.md`.
+     proyecto no recibe datos de fuera, dilo en una línea. El de YAGNI se
+     conserva entero, sin preguntar. Lo que el código existente no cumpla se
+     anota como excepción conocida con su `D<n>`, como en
+     `docs/example/architecture.md`.
    - Lo que una regla de estos docs permita comprobar sin juicio (la
      dirección de imports, el formato, los restos de debug) va a `lint.sh`
      (paso 4), y en el doc queda «(lo comprueba `lint.sh`)» en lugar de la
