@@ -4,8 +4,9 @@
 > no en su definición porque la mayoría de las features no lo necesitan:
 > léelo solo cuando aplique.
 
-**Cuándo aplica.** Solo si el cambio toca una interfaz que se ve en el
-navegador (HTML, CSS, plantillas, componentes o JavaScript de cliente), o si
+**Cuándo aplica.** Solo si el spec aprobado justifica abrir el navegador
+(`docs/verification.md`: en ningún tamaño se hace por defecto) y el cambio
+toca una interfaz que se ve en el navegador (HTML, CSS, plantillas, componentes o JavaScript de cliente), o si
 algún `R<n>` describe algo que el usuario ve o hace en una página. Si no, no
 abras el navegador ni leas las skills. Una CLI de terminal no es una UI web:
 su salida se revisa con los tests y ejecutándola.

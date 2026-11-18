@@ -10,7 +10,7 @@
 ### Q1 · ¿`recent --limit` mayor que el total de notas debe avisar?
 
 - **Contexto:** hoy devuelve todas las notas sin decir nada. Ningún
-  requirement lo cubre (`specs/example/cli_recent/design.md` › Riesgos).
+  requisito lo cubre (`progress/example/review_cli_recent.md` › Fuera del spec).
 - **Opciones:** dejarlo así · avisar por stderr.
 - **Bloquea:** nada.
 - **Origen:** F-7.
@@ -25,7 +25,7 @@
 - **Dónde:** `src/cli.py:23`, `src/cli.py:55`, `src/cli.py:67`.
 - **Arreglo propuesto:** extraer `_format_row(note: dict) -> str`.
 - **Gravedad:** baja · **Esfuerzo:** muy bajo.
-- **Origen:** F-7 (`specs/example/cli_recent/design.md` › Formato de salida).
+- **Origen:** F-7 (`specs/example/cli_recent/spec.md` › Diseño).
 
 ### D2 · Los datos de `.notes.json` entran sin validar
 

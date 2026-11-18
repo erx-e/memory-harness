@@ -1,8 +1,8 @@
 # Grafo de contexto (graphify)
 
-> Antes de leer o buscar código, pregunta al grafo. Te dice en qué archivo y
-> línea está cada cosa y con qué se relaciona, para que leas solo esas
-> líneas en lugar de recorrer el código desde cero.
+> **Opcional.** Úsalo para preguntas amplias sobre el código (qué usa qué,
+> qué se rompe al cambiar algo, cómo está organizado). Para un símbolo o un
+> texto concreto, grep es más rápido.
 
 ## Qué es
 
@@ -12,9 +12,10 @@ método, test y sección de los `.md` es un nodo, y las relaciones entre ellos
 aristas. Lo construye `graphify update .` analizando el código en local, sin
 ningún modelo ni clave de API.
 
-`./init.sh` lo reconstruye en cada ejecución, así que está al día al empezar
-una sesión y antes de cada revisión. En la misma pasada regenera el informe
-`GRAPH_REPORT.md` y el wiki de `graphify-out/wiki/`.
+`./init.sh` no lo reconstruye: actualízalo antes de usarlo con
+`graphify update .` (tarda alrededor de un segundo), que regenera también el
+informe `GRAPH_REPORT.md`; el wiki de `graphify-out/wiki/`, con
+`graphify export wiki`.
 
 ## Cómo consultarlo
 
@@ -38,7 +39,7 @@ Connections (13):
   --> load() [calls] src/cli.py:L62
   --> NoteError [calls] src/cli.py:L61
   <-- build_parser() [indirect_call] src/cli.py:L122
-  <-- Algoritmo [references] specs/example/cli_recent/design.md:L40
+  <-- Algoritmo [references] specs/example/cli_recent/spec.md:L22
 ```
 
 Con eso lees `src/cli.py` desde la línea 59, no el archivo entero.
@@ -46,7 +47,7 @@ Con eso lees `src/cli.py` desde la línea 59, no el archivo entero.
 ## Vista general del proyecto
 
 Para preguntas amplias ("cómo está organizado esto", "cuáles son las piezas
-principales") hay dos documentos que `./init.sh` regenera junto al grafo, sin
+principales") hay dos documentos que se regeneran junto al grafo, sin
 ningún modelo:
 
 | Documento                       | Qué contiene                                                                 | Úsalo para |
@@ -87,7 +88,8 @@ porque se deducen en local. No describen el tema del grupo: mira su lista de
 
 ## Mantenerlo al día
 
-- `./init.sh` actualiza siempre el grafo, el informe y el wiki.
+- A mano: `graphify update .` (grafo e informe) y `graphify export wiki`
+  (wiki).
 - Al terminar, `graphify update` imprime "For doc/paper/image changes run
   /graphify --update in your AI assistant". Es un texto fijo del programa:
   ignóralo. Los `.md` ya se actualizan en local y este arnés no usa la
@@ -105,14 +107,6 @@ no se versiona.
 
 ## Si graphify no está instalado
 
-`./init.sh` lo avisa con un `[WARN]` y sigue: el grafo es una ayuda, no un
-requisito. Sin él, orienta la lectura con `Grep` y lee solo lo necesario.
+El grafo es una ayuda, no un requisito. Sin él, orienta la lectura con `Grep` y lee solo lo necesario.
 Para instalarlo: `uv tool install graphifyy` (o `pip install graphifyy`).
 
-## Avisos automáticos
-
-Un hook de graphify (H7 en `docs/hooks.md`) se evalúa antes de cada
-lectura o búsqueda y, cuando lo ve útil, añade un recordatorio de consultar
-el grafo con lo que ya sabe de ese archivo. Salta también con los `.md`, no
-solo con el código. Es un aviso, no un bloqueo: si ya consultaste el grafo,
-o estás leyendo una sección concreta que te pide tu protocolo, sigue.

@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# init.sh — Verificación e inicialización del entorno
+# init.sh — Verificación del harness
 #
-# Este script lo ejecuta el agente al COMENZAR una sesión y antes de
-# declarar cualquier tarea como `done`. Si falla, la sesión no debe avanzar.
-#
-# Salida esperada: códigos de salida claros y bloques marcados con [OK]/[FAIL].
+# Comprueba el entorno, la cola de features y el código (lint.sh y los tests),
+# e imprime el estado real del trabajo, que manda sobre lo escrito a mano en
+# progress/. Si falla, nada se da por terminado.
 #
 # Uso:
-#   ./init.sh            verificación completa (análisis estático, tests y grafo)
-#   ./init.sh --status   solo validaciones rápidas y el estado del trabajo;
-#                        lo usa el hook SessionStart para que cada sesión
-#                        empiece con el estado real y no con lo último escrito
+#   ./init.sh            verificación completa: la ejecutan el implementer al
+#                        terminar y el leader al cerrar una feature
+#   ./init.sh --status   solo validaciones rápidas y el estado del trabajo: la
+#                        usan los hooks al iniciar la sesión y al terminar cada
+#                        turno, y el spec_author para comprobar su spec
 
 set -u
 STATUS_ONLY=0
@@ -44,9 +44,9 @@ fi
 ok "Versión de Python compatible"
 
 echo ""
-echo "── 2. Verificando archivos base del arnés ──────────────"
+echo "── 2. Verificando archivos base del harness ────────────"
 
-for f in AGENTS.md memory.sh lint.sh feature_list.json progress/current.md progress/pending.md docs/brief.md docs/architecture.md docs/conventions.md docs/verification.md docs/lessons.md docs/tags.md CHECKPOINTS.md; do
+for f in AGENTS.md lint.sh feature_list.json progress/current.md progress/pending.md docs/brief.md docs/architecture.md docs/conventions.md docs/verification.md docs/lessons.md; do
   if [ ! -f "$f" ]; then
     fail "Falta archivo base: $f"
     EXIT_CODE=1
@@ -55,357 +55,85 @@ for f in AGENTS.md memory.sh lint.sh feature_list.json progress/current.md progr
   fi
 done
 
-# memory.sh es como los agentes consultan la memoria: si no responde con los
-# archivos actuales, ningún protocolo puede seguir sus pasos de consulta.
-if [ -f memory.sh ]; then
-  if bash memory.sh tags >/dev/null 2>&1 && bash memory.sh tags --ejemplo >/dev/null 2>&1; then
-    ok "memory.sh responde"
-  else
-    fail "memory.sh no responde: ejecuta ./memory.sh tags (y con --ejemplo) para ver el error"
-    EXIT_CODE=1
-  fi
-fi
-
 echo ""
-echo "── 3. Validando feature_list.json y specs ─────────────"
+echo "── 3. Validando la cola de features y los specs ───────"
 
 python3 - <<'PY'
-import glob, json, os, re, sys
+import json, os, re, sys
+
+def read_text(path, strip_code=False):
+    try:
+        text = open(path, encoding="utf-8").read()
+    except OSError:
+        return None
+    return re.sub(r"^```.*?^```", "", text, flags=re.M | re.S) if strip_code else text
+
+def area(f, base):
+    """Lo de una feature de ejemplo vive en la subcarpeta example/ de cada área."""
+    return os.path.join(base, "example") if f.get("example") else base
+
 try:
     data = json.load(open("feature_list.json", encoding="utf-8"))
-    # feature_list.json es la cola: al cerrarse, una feature pasa a
-    # feature_archive.json para que los agentes no carguen lo ya hecho. Las
-    # validaciones de las features `done` recorren los dos archivos.
-    archive = []
-    if os.path.isfile("feature_archive.json"):
-        archive = json.load(open("feature_archive.json", encoding="utf-8"))["features"]
-    features = data["features"] + archive
-    # Lo de una feature de ejemplo vive en la subcarpeta example/ de cada área.
-    def area(f, base):
-        return os.path.join(base, "example") if f.get("example") else base
-    valid = {"pending", "spec_ready", "in_progress", "done", "blocked"}
-    not_done = [f for f in archive if f["status"] != "done"]
-    if not_done:
-        f = not_done[0]
-        print(f"[FAIL]  F-{f['id']} ({f['name']}) está en feature_archive.json con estado {f['status']}: ahí solo van las done")
-        sys.exit(1)
-    ids = [f["id"] for f in features]
-    repeated = sorted({i for i in ids if ids.count(i) > 1})
-    if repeated:
-        print(f"[FAIL]  Ids de feature repetidos entre feature_list.json y feature_archive.json: {', '.join(f'F-{i}' for i in repeated)}")
-        sys.exit(1)
-    in_progress = [f for f in features if f["status"] == "in_progress"]
-    if len(in_progress) > 1:
-        print(f"[FAIL]  Hay {len(in_progress)} features en in_progress (máximo 1)")
-        sys.exit(1)
-    requires_spec = {"spec_ready", "in_progress", "done"}
-    spec_errors = []
+    features = data["features"]
+    VALID = {"pending", "spec_ready", "in_progress", "done", "blocked"}
+    SIZES = ("trivial", "small", "medium", "large")
+    # El spec de una feature large es corto (.claude/agents/spec_author.md). Se
+    # mira también en pending, para que el spec_author lo vea antes de entregarlo.
+    SPEC_MAX = 150
+    errors = []
+    ids = [f.get("id") for f in features]
+    for i in sorted({i for i in ids if ids.count(i) > 1}, key=str):
+        errors.append(f"Id de feature repetido en feature_list.json: F-{i}")
+    if sum(1 for f in features if f.get("status") == "in_progress") > 1:
+        errors.append("Hay más de una feature en in_progress (máximo 1)")
     for f in features:
-        if f["status"] not in valid:
-            print(f"[FAIL]  Estado inválido en F-{f['id']}: {f['status']}")
-            sys.exit(1)
-        if f.get("sdd") and f["status"] in requires_spec:
-            spec_dir = os.path.join(area(f, "specs"), f["name"])
-            for fname in ("requirements.md", "design.md", "tasks.md"):
-                if not os.path.isfile(os.path.join(spec_dir, fname)):
-                    spec_errors.append(
-                        f"F-{f['id']} ({f['name']}) en {f['status']} "
-                        f"sin {spec_dir}/{fname}"
+        tag = f"F-{f.get('id')} ({f.get('name')})"
+        st, size = f.get("status"), f.get("size")
+        if st not in VALID:
+            errors.append(f"{tag}: estado «{st}» inválido (vale {', '.join(sorted(VALID))})")
+            continue
+        if size is not None and size not in SIZES:
+            errors.append(f"{tag}: size «{size}» inválido: vale {', '.join(SIZES)} (docs/verification.md)")
+        if st in ("spec_ready", "in_progress") and size is None:
+            errors.append(f"{tag} está en {st} sin «size»: lo pone el leader al confirmar la entrevista")
+        if st == "done" and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(f.get("closed", ""))):
+            errors.append(
+                f"{tag} está done sin su fecha «closed» (AAAA-MM-DD), que se pone con la aprobación final del humano"
+            )
+        if size == "large" and st != "done":
+            spec_path = os.path.join(area(f, "specs"), str(f.get("name")), "spec.md")
+            spec = read_text(spec_path)
+            if spec is None:
+                if st in ("spec_ready", "in_progress"):
+                    errors.append(f"{tag} es large y está en {st} sin {spec_path}")
+            else:
+                used = sum(1 for line in spec.splitlines() if line.strip())
+                if used > SPEC_MAX:
+                    errors.append(
+                        f"{spec_path} tiene {used} líneas con texto (máximo {SPEC_MAX}): recórtalo a frases "
+                        "cortas (.claude/agents/spec_author.md)"
                     )
-    if spec_errors:
-        for e in spec_errors:
-            print(f"[FAIL]  {e}")
-        sys.exit(1)
-    # Ninguna feature se cierra sin revisión: toda feature `done` con SDD, o
-    # que no sea del proyecto de muestra, necesita un veredicto APPROVED.
-    approved = re.compile(r"^\*\*Veredicto:\*\*\s*APPROVED\s*$", re.M)
-    review_errors = []
-    for f in features:
-        if f["status"] != "done" or not (f.get("sdd") or not f.get("example")):
-            continue
-        review = os.path.join(area(f, "progress"), f"review_{f['name']}.md")
-        if not os.path.isfile(review):
-            review_errors.append(f"F-{f['id']} ({f['name']}) en done sin {review}")
-        elif not approved.search(open(review, encoding="utf-8").read()):
-            review_errors.append(
-                f"F-{f['id']} ({f['name']}) en done sin veredicto APPROVED en {review}"
-            )
-    if review_errors:
-        for e in review_errors:
-            print(f"[FAIL]  {e}")
-        sys.exit(1)
-    # Quien aprueba el cambio final es el humano: toda feature real `done`
-    # (sin "example") necesita una entrada en progress/history.md con la
-    # línea "- **Aprobación del usuario:** sí".
-    history = ""
-    if os.path.isfile(os.path.join("progress", "history.md")):
-        history = open(os.path.join("progress", "history.md"), encoding="utf-8").read()
-    history = re.sub(r"^```.*?^```", "", history, flags=re.M | re.S)
-    entries = re.split(r"^(?=#{2,3} )", history, flags=re.M)
-    user_ok = re.compile(r"^- \*\*Aprobación del usuario:\*\*\s*s[ií]\b", re.M | re.I)
-    approval_errors = []
-    for f in features:
-        if f["status"] != "done" or f.get("example"):
-            continue
-        heading = re.compile(rf"^#{{2,3}} .*\b{re.escape(f['name'])}\b")
-        mine = [e for e in entries if heading.match(e)]
-        if not mine:
-            approval_errors.append(
-                f"F-{f['id']} ({f['name']}) en done sin entrada en progress/history.md"
-            )
-        elif not any(user_ok.search(e) for e in mine):
-            approval_errors.append(
-                f"F-{f['id']} ({f['name']}) en done sin '- **Aprobación del usuario:** sí' "
-                f"en su entrada de progress/history.md"
-            )
-    if approval_errors:
-        for e in approval_errors:
-            print(f"[FAIL]  {e}")
-        sys.exit(1)
-    # Memoria inmediata y de largo plazo. Las features cerradas se quedan en
-    # feature_list.json hasta que hay más de THRESHOLD; entonces las más
-    # antiguas pasan a feature_archive.json. Las lecciones de docs/lessons.md
-    # pasan a docs/lessons-archive.md empezando por las menos usadas. Los tags
-    # conectan las entradas de las dos memorias y solo valen los registrados.
-    THRESHOLD = 20
-    tag_re = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
-    date_re = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-    lesson_id = r"(?:ADR|Bug|CS)-\d+"
-    def docs_dir(example):
-        return os.path.join("docs", "example") if example else "docs"
-    def read_text(path, strip_code=False):
-        try:
-            text = open(path, encoding="utf-8").read()
-        except OSError:
-            return None
-        return re.sub(r"^```.*?^```", "", text, flags=re.M | re.S) if strip_code else text
-    def registry(example):
-        path = os.path.join(docs_dir(example), "tags.md")
-        text = read_text(path, strip_code=True) or ""
-        return path, {t for t in re.findall(r"^\|\s*`([^`]+)`\s*\|", text, flags=re.M) if tag_re.match(t)}
-    registries = {example: registry(example) for example in (False, True)}
-    def tag_errors(tags, owner, example):
-        path, known = registries[example]
-        if not isinstance(tags, list) or not 1 <= len(tags) <= 4:
-            return [f"{owner} debe llevar entre 1 y 4 tags de {path}"]
-        errors = []
-        for t in tags:
-            if not isinstance(t, str) or not tag_re.match(t):
-                errors.append(f"{owner}: el tag {t!r} no sigue el formato (minúsculas, sin tildes, palabras unidas con guiones)")
-            elif t not in known:
-                errors.append(f"{owner}: el tag '{t}' no está en {path}")
-        return errors
-    def lessons(path):
-        """Las entradas (id → texto) y el índice (id → tags) de un archivo de lecciones."""
-        text = read_text(path, strip_code=True)
-        if text is None:
-            return None
-        entries = {}
-        for block in re.split(r"^(?=#### )", text, flags=re.M):
-            m = re.match(rf"#### ({lesson_id})\b", block)
-            if m:
-                entries[m.group(1)] = block
-        index, header = {}, None
-        for line in text.splitlines():
-            if not line.lstrip().startswith("|"):
-                header = None
-                continue
-            cells = [c.strip() for c in line.strip().strip("|").split("|")]
-            if header is None:
-                header = [c.lower() for c in cells]
-            elif not re.fullmatch(r"[\s|:-]+", line):
-                row = dict(zip(header, cells))
-                if re.fullmatch(lesson_id, row.get("id", "")):
-                    index[row["id"]] = re.findall(r"`([^`]+)`", row.get("tags", ""))
-        return entries, index
-    memory_errors = []
-    for f in features:
-        if "tags" in f or f["status"] in requires_spec:
-            memory_errors += tag_errors(f.get("tags"), f"F-{f['id']} ({f['name']})", bool(f.get("example")))
-        if "closed" in f and not date_re.match(str(f["closed"])):
-            memory_errors.append(f"F-{f['id']} ({f['name']}): 'closed' debe ser una fecha AAAA-MM-DD")
-    for example in (False, True):
-        closed = [f for f in data["features"] if f["status"] == "done" and bool(f.get("example")) == example]
-        memory_errors += [
-            f"F-{f['id']} ({f['name']}) está done en feature_list.json sin su fecha 'closed'"
-            for f in closed if "closed" not in f
-        ]
-        if len(closed) > THRESHOLD:
-            oldest = sorted(closed, key=lambda f: (str(f.get("closed", "")), f["id"]))[: len(closed) - THRESHOLD]
-            memory_errors.append(
-                f"feature_list.json tiene {len(closed)} features cerradas (tope {THRESHOLD}): pasa a "
-                "feature_archive.json las más antiguas: " + ", ".join(f"F-{f['id']} {f['name']}" for f in oldest)
-            )
-        active = os.path.join(docs_dir(example), "lessons.md")
-        archived = os.path.join(docs_dir(example), "lessons-archive.md")
-        parsed = {path: lessons(path) for path in (active, archived)}
-        for path, found in parsed.items():
-            entries, index = found or ({}, {})
-            for lid in entries:
-                if lid not in index:
-                    memory_errors.append(f"{path}: {lid} no tiene fila en el índice, así que no tiene tags")
-                else:
-                    memory_errors += tag_errors(index[lid], f"{path} › {lid}", example)
-        # Cada lección activa dice qué la hace cumplir: un chequeo, la D<n> que
-        # lo creará o el juicio de quien la lee (leader.md › «Codificar las
-        # lecciones en estructura»). Una D<n> citada sigue abierta en pending.md.
-        debts_path = os.path.join("progress", "example", "pending.md") if example else os.path.join("progress", "pending.md")
-        open_debts = set(re.findall(r"^#{3,4} (D\d+)\b", read_text(debts_path, strip_code=True) or "", flags=re.M))
-        for lid, block in (parsed[active] or ({}, {}))[0].items():
-            field = re.search(r"^- \*\*Mecanismo:\*\*(.*?)(?=^- \*\*|^#|\Z)", block, flags=re.M | re.S)
-            if not field or not field.group(1).strip():
-                memory_errors.append(
-                    f"{active} › {lid} no tiene «- **Mecanismo:**»: di qué lo comprueba sin juicio, "
-                    "qué D<n> lo hará o por qué requiere juicio"
-                )
-                continue
-            for debt in sorted(set(re.findall(r"\bD\d+\b", field.group(1))) - open_debts):
-                memory_errors.append(
-                    f"{active} › {lid} cita {debt} como mecanismo, pero ya no está en {debts_path}: "
-                    "pon el chequeo que la resolvió o «Requiere juicio»"
-                )
-        entries = (parsed[active] or ({}, {}))[0]
-        if len(entries) <= THRESHOLD:
-            continue
-        # Último uso de una lección: la feature de id más alto que la cita en su
-        # spec o en sus informes, o la de su «Origen». Se archivan primero las
-        # de último uso más antiguo.
-        texts = {}
-        for f in features:
-            if bool(f.get("example")) != example:
-                continue
-            paths = glob.glob(os.path.join(area(f, "specs"), f["name"], "*.md"))
-            paths += [os.path.join(area(f, "progress"), f"{kind}_{f['name']}.md") for kind in ("spec", "impl", "review")]
-            texts[f["id"]] = "\n".join(t for t in map(read_text, paths) if t)
-        def last_use(lid):
-            uses = [int(n) for n in re.findall(r"\*\*Origen:\*\*\s*(?:feature\s+#?|F-)(\d+)", entries[lid])[:1]]
-            uses += [fid for fid, text in texts.items() if re.search(rf"\b{re.escape(lid)}\b", text)]
-            return max(uses, default=0)
-        use = {lid: last_use(lid) for lid in entries}
-        order = list(entries)
-        surplus = sorted(order, key=lambda lid: (use[lid], order.index(lid)))[: len(entries) - THRESHOLD]
-        memory_errors.append(
-            f"{active} tiene {len(entries)} lecciones (tope {THRESHOLD}): pasa a {archived} las menos usadas: "
-            + ", ".join(f"{lid} (último uso: " + (f"F-{use[lid]}" if use[lid] else "ninguno") + ")" for lid in surplus)
-        )
-    if memory_errors:
-        for e in memory_errors:
-            print(f"[FAIL]  {e}")
-        sys.exit(1)
-    # El spec y el informe del implementer, contra las reglas de docs/specs.md
-    # que no piden juicio; el reviewer conserva las que sí. El formato se mira
-    # en el spec de toda feature sin cerrar, también en pending, para que el
-    # spec_author lo compruebe antes de entregarlo; el de una feature done se
-    # comprobó mientras estaba abierta.
-    ears = re.compile(
-        r"(?:(?:CUANDO|MIENTRAS|DONDE) .+?, el sistema|SI .+? ENTONCES el sistema|El sistema)"
-        r" (?:NO )?DEBE\b"
-    )
-    soft_verb = re.compile(r"\bel sistema (?:podría|puede|soporta)\b", re.I)
-    def section(text, title):
-        m = re.search(rf"^## {title}\b[^\n]*\n(.*?)(?=^## |\Z)", text, flags=re.M | re.S)
-        return m.group(1) if m else ""
-    def tests_text():
-        # La carpeta de tests del proyecto: si no es tests/, cámbiala aquí y en
-        # la sección 4 (docs/project-setup.md, paso 4).
-        chunks = []
-        for root, dirs, names in os.walk("tests"):
-            dirs[:] = [d for d in dirs if d != "__pycache__"]
-            for name in names:
-                try:
-                    chunks.append(open(os.path.join(root, name), encoding="utf-8", errors="ignore").read())
-                except OSError:
-                    pass
-        return "\n".join(chunks)
-    format_errors = []
-    for f in features:
-        if not f.get("sdd"):
-            continue
-        spec_dir = os.path.join(area(f, "specs"), f["name"])
-        req = read_text(os.path.join(spec_dir, "requirements.md"), strip_code=True)
-        tasks_md = read_text(os.path.join(spec_dir, "tasks.md"), strip_code=True)
-        reqs = re.findall(r"^## (R\d+)[ \t]*\n(.*?)(?=^#{1,2} |\Z)", req or "", flags=re.M | re.S)
-        rids = [r for r, _ in reqs]
-        tasks = re.findall(r"^- \[([ xX])\] (T\d+)\b(.*?)(?=^- \[|^#{1,3} |\Z)", tasks_md or "", flags=re.M | re.S)
-        open_tasks = [t for state, t, _ in tasks if state == " "]
-        if f["status"] == "done":
-            if open_tasks:
-                format_errors.append(
-                    f"F-{f['id']} ({f['name']}) está done con tasks en [ ] en {spec_dir}/tasks.md: {', '.join(open_tasks)}"
-                )
-            continue
-        where = f"{spec_dir}/requirements.md"
-        if req is not None and not reqs:
-            format_errors.append(f"{where} no tiene requirements con la forma «## R<n>» y su párrafo debajo (docs/specs.md › EARS)")
-        for rid in sorted({r for r in rids if rids.count(r) > 1}):
-            format_errors.append(f"{where}: {rid} está repetido; cada requirement tiene un id propio")
-        for rid, body in reqs:
-            prose = re.sub(r"`[^`\n]*`", "``", " ".join(body.split()))
-            if not ears.match(prose):
-                why = ("usa DEBE o NO DEBE, no un verbo blando" if soft_verb.search(prose)
-                       else "no sigue ninguno de los seis patrones EARS")
-                format_errors.append(f"{where} › {rid} {why} (docs/specs.md › EARS): «{prose[:70]}»")
-            elif len(re.findall(r"\bDEBE\b", prose)) > 1:
-                format_errors.append(f"{where} › {rid} tiene más de un DEBE o NO DEBE: pártelo en dos requirements")
-        for _, tid, body in tasks:
-            cited = re.findall(r"\bR\d+\b", body.split("Cubre:", 1)[1]) if "Cubre:" in body else []
-            if not cited:
-                format_errors.append(
-                    f"{spec_dir}/tasks.md › {tid} no dice qué requirements cubre («Cubre: R1, R2»). Un paso de "
-                    "proceso (escribir la trazabilidad, ejecutar ./init.sh) no es una task: ya está en el protocolo del implementer"
-                )
-            elif req is not None:
-                unknown = sorted(set(cited) - set(rids), key=lambda r: int(r[1:]))
-                if unknown:
-                    format_errors.append(f"{spec_dir}/tasks.md › {tid} cubre {', '.join(unknown)}, que no existe en requirements.md")
-        # El informe del implementer de la feature en curso: el mapa R<n> → test
-        # está completo, sus tests existen y cada task en [ ] dice por qué.
-        impl_path = os.path.join(area(f, "progress"), f"impl_{f['name']}.md")
-        impl = read_text(impl_path, strip_code=True) if f["status"] == "in_progress" else None
-        if impl is None:
-            continue
-        trace = {}
-        for line in section(impl, "Trazabilidad").splitlines():
-            m = re.match(r"\s*- (R\d+)\s*(?:→|->)(.*)", line)
-            if m:
-                trace.setdefault(m.group(1), []).extend(re.findall(r"`([^`]+)`", m.group(2).split("(", 1)[0]))
-        for rid in rids:
-            if not trace.get(rid):
-                format_errors.append(f"{impl_path} › Trazabilidad: {rid} no tiene test («- {rid} → `nombre_del_test`»)")
-        for rid in sorted(set(trace) - set(rids), key=lambda r: int(r[1:])):
-            format_errors.append(f"{impl_path} › Trazabilidad cita {rid}, que no existe en requirements.md")
-        corpus = tests_text()
-        for name in sorted({n for names in trace.values() for n in names}):
-            if not re.search(rf"(?<!\w){re.escape(name)}(?!\w)", corpus):
-                format_errors.append(f"{impl_path} › Trazabilidad cita `{name}`, que no aparece en tests/")
-        reasons = section(impl, "Tasks")
-        for tid in open_tasks:
-            if not re.search(rf"^\s*- {tid}\b\s*[:—–-]", reasons, flags=re.M):
-                format_errors.append(
-                    f"{tid} sigue en [ ] en {spec_dir}/tasks.md y {impl_path} › Tasks no dice por qué («- {tid}: <motivo>»)"
-                )
     # progress/current.md describe la feature en curso o está en su plantilla:
-    # si conserva una feature ya cerrada, el siguiente spec_author o
-    # implementer recibiría decisiones de otra feature.
+    # si conserva una ya cerrada, el siguiente agente leería decisiones ajenas.
     current = read_text(os.path.join("progress", "current.md"), strip_code=True) or ""
     current = re.sub(r"<!--.*?-->", "", current, flags=re.S)
-    closed = {f["id"]: f["name"] for f in features if f["status"] == "done"}
-    cited = re.findall(r"Feature en curso:\**[ \t]*(?:F-)?(\d+)", current)
-    cited += re.findall(r"^#{2,3} Decisiones de la entrevista\b[^\n]*?\bF-(\d+)", current, flags=re.M)
+    closed = {f.get("id"): f.get("name") for f in features if f.get("status") == "done"}
+    cited = re.findall(r"\*\*Feature:\*\*[ \t]*F-(\d+)", current)
+    cited += re.findall(r"^## (?:Decisiones|Plan) — F-(\d+)", current, flags=re.M)
     for fid in sorted({int(i) for i in cited} & set(closed)):
-        format_errors.append(
+        errors.append(
             f"progress/current.md conserva F-{fid} ({closed[fid]}), ya cerrada: déjalo en su plantilla "
-            "(leader.md › Cierre de una feature)"
+            "(leader.md › Cierre)"
         )
-    if format_errors:
-        for e in format_errors:
+    if errors:
+        for e in errors:
             print(f"[FAIL]  {e}")
         sys.exit(1)
     # Ninguna feature real avanza con los docs del proyecto sin rellenar: las
     # reglas de docs/example/ valen solo para las features de ejemplo, así que
-    # un hueco `<...>` en docs/ deja a los agentes sin regla propia.
-    # Solo se mira el texto corrido: lo que va entre comillas invertidas o en
-    # un bloque de código puede usar `<así>` como notación (`test_<módulo>`).
+    # un hueco `<...>` en docs/ deja a los agentes sin regla propia. Solo cuenta
+    # el texto corrido: lo que va entre comillas invertidas o en un bloque de
+    # código puede usar `<así>` como notación (`test_<módulo>`).
     html_tags = {
         "a", "b", "br", "code", "details", "div", "em", "hr", "i", "img", "kbd",
         "li", "ol", "p", "pre", "span", "strong", "sub", "summary", "sup",
@@ -413,9 +141,8 @@ try:
     }
     harness_tokens = {"n", "name", "id", "feature"}
     def holes(path):
-        try:
-            text = open(path, encoding="utf-8").read()
-        except OSError:
+        text = read_text(path)
+        if text is None:
             return []
         text = re.sub(r"^```.*?^```", "", text, flags=re.M | re.S)
         text = re.sub(r"`[^`\n]*`", "", text)
@@ -426,12 +153,12 @@ try:
                 continue
             found.append("<" + " ".join(h.split()) + ">")
         return found
-    gated = ("docs/architecture.md", "docs/conventions.md", "docs/verification.md", "docs/tags.md", "CHECKPOINTS.md")
+    gated = ("docs/architecture.md", "docs/conventions.md", "docs/verification.md")
     real = [f for f in features if not f.get("example")]
-    started = [f for f in real if f["status"] in requires_spec]
+    started = [f for f in real if f.get("status") != "pending"]
     unfilled = {p: h for p in gated if (h := holes(p))}
     # lint.sh lleva SIN_CONFIGURAR hasta que el leader escribe el análisis
-    # estático del proyecto (docs/project-setup.md, paso 4): es un hueco más.
+    # estático del proyecto: es un hueco más de los docs.
     if re.search(r"^SIN_CONFIGURAR=1\b", read_text("lint.sh") or "", flags=re.M):
         unfilled["lint.sh"] = ["SIN_CONFIGURAR"]
     if unfilled and started:
@@ -441,23 +168,19 @@ try:
                 f"[FAIL]  {p} tiene {len(h)} hueco(s) sin rellenar "
                 f"(p. ej. {h[0][:60]}) y la feature F-{s['id']} ({s['name']}) ya está en {s['status']}"
             )
-        print("[FAIL]  Rellénalos con el usuario antes de avanzar; lo no decidido se escribe como «Sin decidir», no se deja el hueco")
+        print("[FAIL]  Rellénalos con el humano antes de avanzar (docs/project-setup.md); lo no decidido se escribe como «Sin decidir», no se deja el hueco")
         sys.exit(1)
     for p, h in (unfilled.items() if real else ()):
-        print(f"[WARN]  {p} tiene {len(h)} hueco(s): rellénalo antes del primer spec del proyecto")
-    print(f"[OK]    feature_list.json válido ({len(data['features'])} features, {len(archive)} archivadas)")
+        print(f"[WARN]  {p} tiene {len(h)} hueco(s): rellénalo antes de la primera feature del proyecto")
+    print(f"[OK]    feature_list.json válido ({len(features)} features)")
     if real and not unfilled:
-        print(f"[OK]    Docs del proyecto sin huecos")
-    print(f"[OK]    Specs presentes para features sdd con estado no-pending")
-    print(f"[OK]    Specs con formato válido (EARS, tasks con sus R<n>) y trazabilidad completa en la feature en curso")
-    print(f"[OK]    Toda feature done tiene revisión APPROVED")
-    print(f"[OK]    Toda feature real done tiene la aprobación del usuario en history.md")
-    print(f"[OK]    progress/current.md sin restos de features cerradas")
-    print(f"[OK]    Memoria dentro del umbral ({THRESHOLD} features cerradas y {THRESHOLD} lecciones activas), con tags registrados y el mecanismo de cada lección")
+        print("[OK]    Docs del proyecto sin huecos")
+    print("[OK]    Specs de las features large presentes y cortos")
+    print("[OK]    progress/current.md sin restos de features cerradas")
 except SystemExit:
     raise
 except Exception as e:
-    print(f"[FAIL]  feature_list.json o specs inválidos: {e}")
+    print(f"[FAIL]  feature_list.json inválido: {e}")
     sys.exit(1)
 PY
 
@@ -505,42 +228,10 @@ else
   warn "Carpeta tests/ no existe todavía"
 fi
 
-echo ""
-echo "── 5. Grafo de contexto (graphify) ─────────────────────"
-
-# Opcional: nunca cambia EXIT_CODE. Sin graphify el arnés funciona igual,
-# pero los agentes tienen que leer el código para orientarse.
-# `graphify update` solo analiza el código y los .md en local: no usa ningún
-# modelo ni clave de API. Ver docs/graphify.md.
-if command -v graphify >/dev/null 2>&1; then
-  if GRAPH_OUT=$(graphify update . 2>&1); then
-    GRAPH_SIZE=$(printf '%s\n' "$GRAPH_OUT" | sed -n 's/.*Rebuilt: //p' | head -1)
-    ok "Grafo actualizado en graphify-out/ (${GRAPH_SIZE:-sin cambios})"
-    # Wiki navegable: un artículo por grupo de código y un index.md de entrada.
-    # Si nadie ha etiquetado los grupos con un modelo, usa los nombres
-    # provisionales que graphify deduce en local.
-    WIKI_LABELS=""
-    if ! grep -q '[^{}[:space:]]' graphify-out/.graphify_labels.json 2>/dev/null \
-       && [ -s graphify-out/.graphify_labels.pending.json ]; then
-      WIKI_LABELS="graphify-out/.graphify_labels.pending.json"
-    fi
-    if WIKI_OUT=$(graphify export wiki ${WIKI_LABELS:+--labels "$WIKI_LABELS"} 2>&1); then
-      ok "Wiki actualizado en graphify-out/wiki/ ($(printf '%s\n' "$WIKI_OUT" | sed -n 's/^Wiki: \([0-9]* articles\).*/\1/p' | head -1))"
-    else
-      warn "graphify export wiki falló; el wiki puede estar desactualizado"
-    fi
-  else
-    warn "graphify update falló; el grafo puede estar desactualizado:"
-    printf '%s\n' "$GRAPH_OUT" | tail -3
-  fi
-else
-  warn "graphify no está instalado: no hay grafo de contexto (ver docs/graphify.md)"
-fi
-
 fi  # STATUS_ONLY
 
 echo ""
-echo "── 6. Estado del trabajo ───────────────────────────────"
+echo "── 5. Estado del trabajo ───────────────────────────────"
 
 # Informativo: nunca cambia EXIT_CODE. Es el estado REAL, derivado de los
 # archivos en este momento. Manda sobre cualquier estado escrito a mano.
@@ -563,10 +254,8 @@ def area(f, base):
 
 try:
     feats = json.load(open("feature_list.json", encoding="utf-8"))["features"]
-    if os.path.isfile("feature_archive.json"):
-        feats = feats + json.load(open("feature_archive.json", encoding="utf-8"))["features"]
 except Exception as e:
-    print(f"[WARN]  No se pudo leer feature_list.json o feature_archive.json: {e}")
+    print(f"[WARN]  No se pudo leer feature_list.json: {e}")
     raise SystemExit(0)
 
 order = ["in_progress", "spec_ready", "blocked", "pending", "done"]
@@ -585,12 +274,16 @@ if example:
 approved = re.compile(r"^\*\*Veredicto:\*\*\s*APPROVED\s*$", re.M)
 changes = re.compile(r"^\*\*Veredicto:\*\*\s*CHANGES_REQUESTED\s*$", re.M)
 screenshot = re.compile(r"^\*\*Veredicto:\*\*\s*SCREENSHOT_REQUESTED\s*$", re.M)
+current = prose(read(os.path.join("progress", "current.md")))
 for f in real:
-    name, st = f.get("name"), f.get("status")
+    name, st, size = f.get("name"), f.get("status"), f.get("size")
     tag = f"F-{f.get('id')} {name}"
     review_path = os.path.join(area(f, "progress"), f"review_{name}.md")
-    if st == "spec_ready":
-        print(f"  ESPERA AL USUARIO:     {tag} tiene el spec en {area(f, 'specs')}/{name}/; falta que lo apruebe")
+    implemented = os.path.isfile(os.path.join(area(f, "progress"), f"impl_{name}.md"))
+    if st == "pending" and re.search(rf"^## Plan — F-{f.get('id')}\b", current, flags=re.M):
+        print(f"  ESPERA AL USUARIO:     {tag} tiene su plan en progress/current.md; falta que lo apruebe")
+    elif st == "spec_ready":
+        print(f"  ESPERA AL USUARIO:     {tag} tiene su spec en {area(f, 'specs')}/{name}/spec.md; falta que lo apruebe")
     elif st == "in_progress":
         review = read(review_path)
         if approved.search(review):
@@ -599,7 +292,9 @@ for f in real:
             print(f"  En curso:              {tag}; el reviewer pidió cambios ({review_path})")
         elif screenshot.search(review):
             print(f"  ESPERA AL USUARIO:     {tag}; el reviewer pide permiso para una captura de pantalla ({review_path})")
-        elif os.path.isfile(os.path.join(area(f, "progress"), f"impl_{name}.md")):
+        elif implemented and size != "large":
+            print(f"  ESPERA AL USUARIO:     {tag} está implementada; falta su aprobación final")
+        elif implemented:
             print(f"  En curso:              {tag}; implementada, falta la revisión")
         else:
             print(f"  En curso:              {tag}; en implementación")
@@ -609,7 +304,7 @@ for f in real:
 pending = [f for f in real if f.get("status") == "pending"]
 if pending:
     print(f"  Siguiente pendiente:   F-{pending[0].get('id')} {pending[0].get('name')}")
-# Cuenta también las archivadas: un id no se reutiliza.
+# Cuenta también las de ejemplo: un id no se reutiliza.
 used = [f.get("id") for f in feats if isinstance(f.get("id"), int)]
 print(f"  Siguiente id libre:    F-{max(used, default=0) + 1}")
 
@@ -636,11 +331,11 @@ except Exception:
 PY
 
 echo ""
-echo "── 7. Resumen ──────────────────────────────────────────"
+echo "── 6. Resumen ──────────────────────────────────────────"
 
 if [ "$STATUS_ONLY" -eq 1 ]; then
   if [ $EXIT_CODE -eq 0 ]; then
-    ok "Validaciones rápidas en verde. Análisis estático, tests y grafo NO ejecutados: usa ./init.sh"
+    ok "Validaciones rápidas en verde. Análisis estático y tests NO ejecutados: usa ./init.sh"
   else
     fail "Hay validaciones en rojo. Ejecuta ./init.sh y resuélvelas antes de avanzar."
   fi

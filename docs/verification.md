@@ -1,54 +1,63 @@
-# Verificación — Cómo demostrar que el trabajo funciona
+# Verificación
 
-> Regla de oro: **el agente no dice "funciona", lo demuestra**.
-> Toda feature termina con evidencia ejecutable, no con afirmaciones.
+> El agente no dice «funciona»: lo demuestra con un comando. Y verifica en
+> proporción al cambio, no al máximo posible.
 
 > **Plantilla.** Los huecos `<...>` los rellena el leader contigo antes de tu
 > primera feature (`docs/project-setup.md`); al rellenarla se quitan esta nota
 > y el texto que solo explica cómo rellenar. Ejemplo relleno:
 > `docs/example/verification.md`.
 
-## Niveles de verificación
+## Qué se verifica según el tamaño
+
+Esta sección no se rellena: rige en todos los proyectos del harness. El
+tamaño es el campo `"size"` de la feature: lo propone el leader y lo confirma
+el humano.
+
+| Tamaño | Qué cambia | Verificación |
+|---|---|---|
+| `trivial` | Un texto, un estilo o un renombre, sin lógica | `./init.sh`; un test se actualiza solo si comprueba el texto que cambia |
+| `small` | Una regla, un tope, una validación, un mensaje, un campo o una opción de algo que ya existe | Un test por regla y su borde, y `./init.sh` |
+| `medium` | Una pieza nueva o cambiada con lógica propia (un caso de uso, una consulta, un comando, un endpoint, una pantalla), sin flujo que cruce varios componentes ni migración | Los tests de lo que cambia (abajo) y `./init.sh` |
+| `large` | Un flujo nuevo que cruza componentes, una migración o un refactor | Lo mismo, con spec y reviewer |
+
+- **Tests: uno por regla y su borde** (el valor justo, que pasa, y el
+  siguiente, que falla), más el caso que motivó el cambio. Nada de barridos
+  exhaustivos, oráculos ni tests de rendimiento, salvo que el plan o el spec
+  lo pidan; aun así, un caso representativo.
+- **Levantar la app o servicios (contenedores, base de datos, API) y el
+  navegador: en ningún tamaño por defecto.** Solo si algo no se puede
+  comprobar de otra forma (tests, compilación, lectura del código) y el plan
+  o el spec aprobado lo justifica.
+- **`./init.sh` completo, una vez, al final** (y otra tras arreglar lo que
+  falle). Mientras trabajas, solo los tests que tocas.
+
+**Ejemplo del fallo** (de un proyecto real con este harness): una regex y dos
+topes de longitud, unas 40 líneas, se verificaron con la base de datos en
+Docker, un navegador automatizado en cuatro pantallas y 57 tests de una sola
+regex (todo Unicode y ~87 000 cadenas): ~510k tokens entre todos los agentes.
+Bastaba un test por regla y borde, la compilación y `./init.sh`.
+
+## Tests
 
 ### Nivel 1 — <tipo de test> (obligatorio)
 
 <Qué tiene que estar cubierto y con qué casos como mínimo.>
 
-Comando:
 ```bash
 <comando que ejecuta estos tests>
 ```
 
 ### Nivel 2 — <tipo de test> (<cuándo es obligatorio>)
 
-<Qué se verifica y contra qué entorno. Acompáñalo de un ejemplo corto.>
+<Qué se verifica y contra qué entorno. Acompáñalo de un ejemplo corto. Si el
+proyecto no lo necesita, borra este nivel.>
 
-### Nivel 3 — <comprobación manual> (opcional)
+## Recorrido manual (excepcional)
 
-<Flujo de extremo a extremo que se ejecuta antes de cerrar la sesión.>
-
-```bash
-<comandos del flujo>
-```
-
-### Nivel 4 — Trazabilidad de requirements (obligatorio para features con `"sdd": true`)
-
-Cada `R<n>` del spec tiene al menos un test concreto. La regla y el formato
-del mapa `R<n>` → test están en `docs/specs.md` › "Trazabilidad"; no se
-repiten aquí. `./init.sh` comprueba que el mapa está completo y que sus
-tests existen.
-
-## Arrancar la interfaz web
-
-El reviewer comprueba las features que tocan la UI con procesos normales
-(`curl`), `playwright-cli` o `chrome-devtools` (ver `docs/ui-review.md`).
-Para eso necesita saber
-cómo arrancar la app, dónde abrirla y cómo pararla. Si el proyecto no tiene
-interfaz web, sustituye esta lista por «No aplica: sin interfaz web».
-
-- Comando para arrancarla: <comando, ejecutado desde la raíz del repositorio>
-- URL: <dirección local donde se abre>
-- Cómo pararla: <comando o acción que la detiene>
+Solo si el plan o el spec aprobado lo justifica. <Cómo arrancar la app (el
+comando, desde la raíz del repositorio), dónde abrirla y cómo pararla; o «No
+aplica: sin interfaz».> Para el navegador, `docs/ui-review.md`.
 
 ## Anti-patrones (no hacer)
 
@@ -61,20 +70,13 @@ que se está cambiando: desde dónde hay que lanzar los comandos, variables de
 entorno, herramientas que se comportan distinto en esta máquina, secretos.
 Una fila por trampa, con el error literal para que se reconozca al verlo.
 
-| Si haces esto                          | Pasa esto                                  | Haz esto                                   |
-|----------------------------------------|--------------------------------------------|--------------------------------------------|
-| <comando o acción que parece correcta> | <error literal o efecto que produce>       | <comando o acción correcta>                |
+| Si haces esto | Pasa esto | Haz esto |
+|---|---|---|
+| <comando o acción que parece correcta> | <error literal o efecto que produce> | <comando o acción correcta> |
 
-Cuando descubras una trampa nueva, añádela aquí. Si además costó rastrearla,
-el leader la registra también en `docs/lessons.md`.
+Cuando descubras una trampa nueva, añádela aquí.
 
-## Verificación final antes de cerrar
+## Verificación final
 
-```bash
-./init.sh           # debe terminar con [OK] Entorno listo
-```
-
-`./init.sh` ejecuta el análisis estático (`lint.sh`) y los tests, y
-comprueba el spec y el mapa de trazabilidad. Si está rojo, el trabajo no
-está terminado y nada se cierra. Si no puedes dejarlo verde, anota el
-bloqueo en `progress/current.md` y para.
+`./init.sh` debe terminar con `[OK] Entorno listo`: ejecuta `lint.sh` y los
+tests. Si está en rojo, nada se cierra.

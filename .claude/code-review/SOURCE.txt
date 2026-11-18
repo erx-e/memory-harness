@@ -1,4 +1,0 @@
-Origen: https://github.com/obra/superpowers (commit 22f0b46), skills/requesting-code-review
-Licencia: MIT, ver LICENSE (Copyright (c) 2025 Jesse Vincent)
-Copiada: 2026-11-14. De la skill solo se conserva la plantilla code-reviewer.md, sin modificaciones:
-el reviewer la lee directamente y ya no se carga como skill (se retiró su SKILL.md el 2026-11-15).

@@ -52,12 +52,10 @@ privados.>
 - <Cómo se agrupan (clases, bloques, módulos).>
 - <Qué recursos reales usan y cómo limpian tras de sí.>
 - <Cómo se nombra cada test: el patrón y un ejemplo.>
+- Cuántos: un test por regla y su borde, más el caso que motivó el cambio
+  (`docs/verification.md`). Esta línea no se rellena: rige en todos los
+  proyectos.
 
-El nombre de un test es lo que se cita en el mapa `R<n>` → test de
-`progress/impl_<name>.md`, y con él lo busca el reviewer. Por eso la
-convención debe dar nombres que describan el comportamiento verificado y que
-no se repitan en toda la suite. No pongas el número del requirement en el
-nombre: `R1` existe en el spec de cada feature.
 
 ## Manejo de errores
 

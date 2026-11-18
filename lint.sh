@@ -2,8 +2,8 @@
 # lint.sh — Análisis estático del código
 #
 # Comprueba sin juicio las reglas del código que lo permiten, para que nadie
-# tenga que revisarlas leyendo (.claude/agents/leader.md › «Codificar las
-# lecciones en estructura»). Lo ejecuta ./init.sh en su sección 4, antes de
+# tenga que revisarlas leyendo (.claude/agents/leader.md › «Lo que se corrige
+# dos veces»). Lo ejecuta ./init.sh en su sección 4, antes de
 # los tests, y se puede lanzar solo desde la raíz del repositorio: ./lint.sh
 #
 # En verde imprime una línea de resumen. En rojo, una línea por fallo, con
@@ -114,7 +114,7 @@ def imported(node):
 
 def real_features():
     found = []
-    for path in ("feature_list.json", "feature_archive.json"):
+    for path in ("feature_list.json",):
         try:
             with open(path, encoding="utf-8") as fh:
                 found += [f for f in json.load(fh)["features"] if not f.get("example")]
@@ -144,7 +144,7 @@ for path in files:
             if word and not re.search(r"\b(F-\d+|D\d+|Q\d+)\b", tok.string):
                 fail(path, tok.start[0], f"{word.group(1)} sin contexto: cita la feature, la deuda o la "
                      "decisión que lo resuelve (F-<id>, D<n> o Q<n>), o quítalo",
-                     "AGENTS.md § 3 y docs/example/checkpoints.md › C3")
+                     "AGENTS.md › Reglas comunes")
 
     # Imports: capas, solo biblioteca estándar, orden y uno por línea.
     seen_local = False
@@ -202,7 +202,7 @@ for path in files:
             name = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", "")
             if name == "print" and isinstance(func, ast.Name) and path != "src/cli.py":
                 fail(path, node.lineno, "print() fuera de src/cli.py: si es de debug, quítalo",
-                     "AGENTS.md § 3 y docs/example/checkpoints.md › C3")
+                     "AGENTS.md › Reglas comunes")
             if (name == "format" and isinstance(func, ast.Attribute)
                     and isinstance(func.value, ast.Constant) and isinstance(func.value.value, str)):
                 fail(path, node.lineno, "interpola con .format(): usa una f-string", f"{CONV} › Estilo Python")

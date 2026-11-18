@@ -8,7 +8,7 @@
 > estable (`Q<n>` para decisiones, `D<n>` para deuda) que no se reutiliza:
 > otros archivos citan el id, no copian el detalle. **Hecho es fuera:** cuando
 > una decisión se toma, o una deuda se convierte en feature o se descarta, su
-> entrada se borra de aquí; el rastro queda en `progress/history.md` o en
+> entrada se borra de aquí; el rastro queda en git y, si enseñó algo, en
 > `docs/lessons.md`. No anotes aquí estado que `./init.sh` ya sabe (tests en
 > verde, features cerradas). Entradas rellenas de muestra:
 > `progress/example/pending.md`.

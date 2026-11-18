@@ -1,27 +1,31 @@
 # Verificación — Ejemplo: CLI de notas
 
-> **Ejemplo.** Reglas de verificación del proyecto de muestra (CLI de notas en Python). Rigen solo
-> las features con `"example": true`; las del proyecto real se rigen por
-> `docs/verification.md`.
+> **Ejemplo.** Reglas de verificación del proyecto de muestra (CLI de notas en
+> Python). Rigen solo las features con `"example": true`; las del proyecto
+> real se rigen por `docs/verification.md`.
 
-## Niveles de verificación
+## Qué se verifica según el tamaño
+
+Rige la tabla de `docs/verification.md`. En el CLI de notas, una feature
+`small` (un mensaje, la validación de un argumento) se verifica con su test
+unitario y su borde; una `medium` (un comando nuevo, como `cli_recent`) añade
+el test de integración del CLI; el recorrido manual, solo si el plan o el
+spec lo justifica.
+
+## Tests
 
 ### Nivel 1 — Tests unitarios (obligatorio)
 
-Toda función pública en `src/` tiene al menos un test en `tests/` que:
+Toda función pública en `src/` tiene al menos un test en `tests/` que cubre
+el camino feliz y, si la función puede fallar, un camino de error.
 
-1. Cubre el camino feliz.
-2. Cubre al menos un camino de error si la función puede fallar.
-
-Comando:
 ```bash
-python3 -m unittest discover -s tests -v
+python3 -m unittest discover -s tests
 ```
 
-### Nivel 2 — Test de integración del CLI (obligatorio para features de UI)
+### Nivel 2 — Test de integración del CLI (obligatorio en comandos nuevos o cambiados)
 
-Las features que añaden comandos al CLI se verifican ejecutando el CLI real
-contra un archivo temporal:
+El comando se verifica ejecutando el CLI real contra un archivo temporal:
 
 ```python
 import subprocess, tempfile, os
@@ -34,10 +38,9 @@ with tempfile.TemporaryDirectory() as d:
     assert "id=" in out
 ```
 
-### Nivel 3 — Smoke test manual (opcional pero recomendado)
+## Recorrido manual (excepcional)
 
-Antes de cerrar la sesión, ejecuta un flujo end-to-end con un archivo
-temporal en `/tmp`:
+Solo si el plan o el spec lo justifica. Un flujo con un archivo temporal:
 
 ```bash
 NOTES_FILE=/tmp/notes_demo.json python3 -m src.cli add "test" --body "x"
@@ -45,16 +48,7 @@ NOTES_FILE=/tmp/notes_demo.json python3 -m src.cli list
 rm /tmp/notes_demo.json
 ```
 
-### Nivel 4 — Trazabilidad de requirements (obligatorio para features con `"sdd": true`)
-
-Cada `R<n>` del spec tiene al menos un test concreto en `tests/`. La regla y
-el formato del mapa `R<n>` → test están en `docs/specs.md` › "Trazabilidad".
-`./init.sh` comprueba que el mapa está completo y que sus tests existen.
-
-## Arrancar la interfaz web
-
-No aplica: el ejemplo es una CLI de terminal, sin interfaz web. El reviewer
-no abre el navegador en sus features.
+No hay interfaz web: el reviewer no abre el navegador en estas features.
 
 ## Anti-patrones (no hacer)
 

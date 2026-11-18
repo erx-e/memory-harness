@@ -41,14 +41,8 @@
 
    Lo comprueba `lint.sh`.
 
-7. **Fronteras y validación.** La validación, el estrechamiento de tipos
-   (*type narrowing*) y el manejo de errores van en las fronteras del
-   sistema. Se confía en el código interno sin condiciones. La lógica de
-   negocio vive en funciones puras, y la capa externa (el *shell*: lo que
-   recibe la entrada y llama al resto) es delgada y mecánica. Aplica al
-   escribir validación, manejo de errores o adaptadores de un framework.
-
-   Las fronteras de este proyecto:
+7. **Fronteras y validación.** Se valida en las fronteras y dentro se
+   confía en los tipos, sin revalidar. Las fronteras de este proyecto:
 
    - **Argumentos de la línea de comandos**, en `src/cli.py`. `argparse`
      comprueba el subcomando, los argumentos obligatorios y los tipos
@@ -66,85 +60,11 @@
    - **La salida al usuario**: `main()`, en `src/cli.py`, traduce cada
      `NoteError` a un mensaje en `stderr` y código de salida 1.
 
-   **Por qué:** la validación dispersa es ruidosa, redundante y da una falsa
-   sensación de seguridad. Mantener la lógica fuera del cableado del
-   framework permite probarla sin el framework.
-
-   **El patrón:**
-
-   - **En las fronteras** (argumentos de la línea de comandos, archivos de
-     configuración, APIs externas, protocolos de red): se valida, se
-     devuelven errores y se actúa a la defensiva.
-   - **Dentro del sistema:** datos tipados, propagación de errores y ninguna
-     revalidación. Se confía en los tipos. Cómo traduce los errores la capa
-     externa lo fija `docs/example/conventions.md` › Manejo de errores.
-   - **A través de la frontera:** se exponen conceptos del dominio, no la
-     representación privada de la frontera. El mecanismo de propósito
-     general va dentro y la política de propósito específico, en el borde.
-
-   **Aplicaciones:**
-
-   Validación y manejo de errores:
-
-   - La configuración se valida al leerla (en la frontera), no dentro de la
-     lógica de negocio.
-   - Los datos crudos se convierten en tipos del dominio en la frontera.
-   - La interfaz pública no reexporta tipos de transporte, de
-     almacenamiento, del framework ni del formato de transmisión (*wire*).
-   - Si la frontera ya validó, no hay comprobaciones de nulos redundantes en
-     lo profundo de la cadena de llamadas.
-
-   Organización del código:
-
-   - La lógica de negocio va en funciones puras, sin dependencias del
-     framework.
-   - Las funciones de parseo son transformaciones puras de bytes crudos a
-     estado tipado.
-   - Construir un prompt (o cualquier texto generado): entra estado
-     estructurado, sale un string.
-   - Puntuar y evaluar (o cualquier cálculo de resultados): transformaciones
-     puras del estado a los resultados.
-
-   **Las dos preguntas para comprobarlo:**
-
-   - «¿Este dato está cruzando una frontera del sistema ahora mismo?» Si no,
-     validarlo es redundante.
-   - «¿Esto puede ser una función pura a la que la capa externa solo llama?»
-     Si puede, extráela.
-
-8. **Solo lo que pide el spec (YAGNI).** Se construye lo que exige un `R<n>`
-   del spec aprobado (o el `acceptance` de una feature trivial), y nada más.
-   Aplica al escribir requisitos, al diseñar y al implementar.
-
-   **Por qué:** cada línea que nadie pidió hay que leerla, probarla y
-   mantenerla, y casi nunca acierta con la necesidad que imaginaba. Cuando la
-   necesidad llega de verdad, llega con su requisito y se construye para ese
-   uso.
-
-   **El patrón:**
-
-   - **Uso observado, no casos especulativos.** No se añaden parámetros,
-     opciones, configuración, capas, puntos de extensión ni casos límite que
-     ningún requisito pida: un subcomando de `cli.py` no gana un flag que
-     ningún `R<n>` pida, aunque «seguro que hará falta».
-   - **Ninguna guarda de más.** Ni validadores, ni parseos, ni comprobaciones
-     más allá de lo que pide el spec. Dónde va la validación que sí se pide
-     lo fija el principio 7.
-   - **El cambio más pequeño.** Se hace el diff mínimo que cumple las tareas:
-     menos líneas ganan a un andamiaje «elegante». Un helper o una
-     abstracción se extrae cuando ya hay varios usos reales, no para uno.
-   - **Restar antes de sumar.** Si el código que la feature modifica tiene
-     algo muerto o redundante, se quita en vez de construir encima. Lo que
-     esté fuera de lo que modifica se anota como `D<n>`, no se toca.
-   - **Lo futuro se anota, no se construye.** Una necesidad que se intuye va
-     a «Fuera de alcance» en la entrevista, o a una `D<n>` en
-     `progress/example/pending.md`.
-
-   **Las dos preguntas para comprobarlo:**
-
-   - «¿Qué `R<n>` falla si borro esto?» Si ninguno, sobra.
-   - «¿Lo pide el uso real o lo estoy imaginando?» Si lo imaginas, no se
-     construye.
+8. **Solo lo que pide el plan o el spec.** Nada de opciones, configuración,
+   capas ni casos límite que nadie pidió: un subcomando de `cli.py` no gana
+   un flag que nadie pidió, aunque «seguro que hará falta». Lo futuro va a
+   una `D<n>` de `progress/example/pending.md`. Se hace el diff mínimo que
+   cumple, y si lo que tocas tiene algo muerto, se quita.
 
 ## Stack y dependencias
 
