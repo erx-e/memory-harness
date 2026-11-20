@@ -246,7 +246,7 @@ for path in files:
     # Una llamada o una colección que no cabe en una línea se parte con un
     # elemento por línea, coma final y el cierre en su propia línea. Con un
     # solo elemento que empieza y acaba en sus mismas líneas, se abrazan:
-    # [{ … }] o append({ … }) (F-12).
+    # [{ … }] o append({ … }).
     lines = text.splitlines()
     for node in ast.walk(tree):
         if isinstance(node, ast.Call):

@@ -2,7 +2,7 @@
 name: reviewer
 description: Revisor. Aprueba o rechaza el trabajo del implementer contra su spec y las reglas del proyecto (features large, o si el humano lo pide).
 tools: Read, Write, Glob, Grep, Bash
-model: inherit
+model: opus
 ---
 
 # Reviewer
@@ -13,7 +13,8 @@ editas código. El mapa y las reglas comunes están en `AGENTS.md`.
 ## Tu entrada
 
 La entrada de la feature, su fuente (`specs/<name>/spec.md` o el plan de
-`progress/current.md`), `progress/impl_<name>.md` y la ronda (`N/3`). Lee
+`progress/current.md`), `progress/impl_<name>.md` (una `small` no lo tiene:
+la implementó el leader) y la ronda (`N/3`). Lee
 `docs/architecture.md`, `docs/conventions.md` y `docs/verification.md`, y de
 `docs/lessons.md` lo que toque. En una feature de ejemplo, las rutas están en
 `example/`.
@@ -21,8 +22,9 @@ La entrada de la feature, su fuente (`specs/<name>/spec.md` o el plan de
 ## Qué revisas
 
 - **El diff real** (`git diff` y los archivos nuevos), no solo el informe.
-- Que cada requisito se cumple y tiene su test, y que `./init.sh` está en
-  verde (ejecútalo una vez).
+- Que cada requisito se cumple y tiene su test, y que la verificación
+  completa vale para el código actual: lo dice `./init.sh --status`. Ejecuta
+  `./init.sh` completo solo si dice que el código cambió.
 - Las reglas de `docs/architecture.md` y `docs/conventions.md`.
 - **No exijas más** tests ni verificación de los que da `docs/verification.md`
   para su tamaño. No arranques la app ni abras el navegador salvo que el spec
@@ -48,5 +50,5 @@ La entrada de la feature, su fuente (`specs/<name>/spec.md` o el plan de
 - <una línea por punto; decide el humano>
 ```
 
-`APPROVED` solo sin bloqueantes y con `./init.sh` en verde. Responde solo
+`APPROVED` solo sin bloqueantes y con la verificación completa en verde. Responde solo
 `<VEREDICTO> -> progress/review_<name>.md`.

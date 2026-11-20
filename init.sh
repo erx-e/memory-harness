@@ -6,15 +6,105 @@
 # progress/. Si falla, nada se da por terminado.
 #
 # Uso:
-#   ./init.sh            verificación completa: la ejecutan el implementer al
-#                        terminar y el leader al cerrar una feature
-#   ./init.sh --status   solo validaciones rápidas y el estado del trabajo: la
-#                        usan los hooks al iniciar la sesión y al terminar cada
-#                        turno, y el spec_author para comprobar su spec
+#   ./init.sh             verificación completa: una vez por feature, la ejecuta
+#                         quien implementa al terminar. En verde, deja anotado
+#                         qué código comprobó
+#   ./init.sh --status    solo validaciones rápidas y el estado del trabajo, con
+#                         si esa verificación sigue valiendo para el código
+#                         actual: la usan el hook de inicio de sesión y quien
+#                         recibe el trabajo de otro
+#   ./init.sh --check     solo las validaciones rápidas, sin el estado del
+#                         trabajo: la usa el hook de fin de turno, que solo
+#                         mira si algo está en rojo
+#   ./init.sh --close <id>  cierra la feature tras la aprobación final del
+#                         humano: `done`, su fecha y progress/current.md en su
+#                         plantilla. No repite la verificación: exige que valga.
+#                         Tampoco enseña el estado del trabajo (--status)
 
 set -u
 STATUS_ONLY=0
-[ "${1:-}" = "--status" ] && STATUS_ONLY=1
+CHECK_ONLY=0
+CLOSE_ID=""
+case "${1:-}" in
+  "") ;;
+  --status) STATUS_ONLY=1 ;;
+  --check) STATUS_ONLY=1; CHECK_ONLY=1 ;;
+  --close)
+    STATUS_ONLY=1
+    CHECK_ONLY=1
+    CLOSE_ID="${2:-}"
+    if [ -z "$CLOSE_ID" ]; then
+      echo "Uso: ./init.sh --close <id>   (el número de la feature: 3 o F-3)"
+      exit 1
+    fi
+    ;;
+  *)
+    echo "Uso: ./init.sh [--status | --check | --close <id>]"
+    exit 1
+    ;;
+esac
+
+# La última verificación completa en verde se anota en $STAMP con la huella del
+# código que comprobó, para no repetirla: --status y --close solo miran si esa
+# huella sigue siendo la del código actual. CODE_PATHS son las carpetas que
+# vigila H1 (.claude/settings.json) y estos dos scripts: si tu código vive en
+# otras, cámbialas en los dos sitios.
+export STAMP=".claude/state/verified.json"
+export CODE_PATHS="src tests init.sh lint.sh"
+
+# stamp check          → 0 si la última verificación en verde vale para el código actual
+# stamp save <tests>   → la anota, con la feature que está en curso
+stamp() {
+  python3 - "$@" <<'PY'
+import hashlib, json, os, subprocess, sys, time
+
+paths = os.environ["CODE_PATHS"].split()
+
+def files():
+    # Con git, lo que no ignora .gitignore; sin git, todo lo que hay.
+    try:
+        r = subprocess.run(
+            ["git", "ls-files", "-co", "--exclude-standard", "-z", "--", *paths], capture_output=True, timeout=30
+        )
+        if r.returncode == 0:
+            return sorted({f for f in r.stdout.decode("utf-8", "surrogateescape").split("\0") if f})
+    except Exception:
+        pass
+    found = []
+    for p in paths:
+        if os.path.isfile(p):
+            found.append(p)
+        for base, dirs, names in os.walk(p):
+            dirs[:] = [d for d in dirs if d != "__pycache__" and not d.startswith(".")]
+            found += [os.path.join(base, n) for n in names if not n.endswith(".pyc")]
+    return sorted(found)
+
+def state():
+    h = hashlib.sha256()
+    for f in files():
+        h.update(os.fsencode(f))
+        try:
+            with open(f, "rb") as fh:
+                h.update(hashlib.sha256(fh.read()).digest())
+        except OSError:
+            h.update(b"ausente")
+    return h.hexdigest()
+
+stamp = os.environ["STAMP"]
+if sys.argv[1] == "save":
+    feats = json.load(open("feature_list.json", encoding="utf-8"))["features"]
+    current = next((f.get("id") for f in feats if f.get("status") == "in_progress"), None)
+    os.makedirs(os.path.dirname(stamp), exist_ok=True)
+    with open(stamp, "w", encoding="utf-8") as fh:
+        json.dump({"code": state(), "feature": current, "tests": sys.argv[2], "at": time.strftime("%Y-%m-%d %H:%M")}, fh)
+else:
+    try:
+        saved = json.load(open(stamp, encoding="utf-8")).get("code")
+    except (OSError, ValueError):
+        saved = None
+    sys.exit(0 if saved == state() else 1)
+PY
+}
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
@@ -55,6 +145,65 @@ for f in AGENTS.md lint.sh feature_list.json progress/current.md progress/pendin
   fi
 done
 
+# Cierre de una feature (leader.md › Cierre). Va antes de validar la cola, para
+# que las secciones 3 y 5 comprueben y enseñen el estado ya cerrado. Si algo no
+# cuadra, no toca nada.
+if [ -n "$CLOSE_ID" ]; then
+  echo ""
+  echo "── Cierre de la feature ───────────────────────────────"
+  VERIFIED=0
+  stamp check && VERIFIED=1
+  VERIFIED=$VERIFIED python3 - "$CLOSE_ID" <<'PY'
+import json, os, sys, time
+
+TEMPLATE = """# Feature en curso
+
+> Se vacía, dejando esta plantilla, al cerrar o abandonar la feature; no al
+> cerrar la sesión.
+
+- **Feature:** _ninguna_
+- **Tamaño:** _—_
+- **Estado:** _—_ (qué falta y quién lo tiene: el humano, el implementer…)
+
+<!-- Debajo, cuando existen: «Decisiones — F-<id>», «Plan — F-<id>»,
+«Diseño — F-<id>» y «Cambios pedidos por el usuario». Su formato está en
+.claude/agents/leader.md. -->
+"""
+
+def stop(msg):
+    print(f"[FAIL]  {msg}")
+    sys.exit(1)
+
+wanted = sys.argv[1].upper().removeprefix("F-")
+try:
+    data = json.load(open("feature_list.json", encoding="utf-8"))
+except Exception as e:
+    stop(f"feature_list.json inválido: {e}")
+feat = next((f for f in data["features"] if str(f.get("id")) == wanted), None)
+if feat is None:
+    stop(f"No hay ninguna feature F-{wanted} en feature_list.json")
+tag = f"F-{feat['id']} ({feat.get('name')})"
+if feat.get("status") != "in_progress":
+    stop(f"{tag} está en «{feat.get('status')}»: solo se cierra una feature in_progress")
+if os.environ.get("VERIFIED") != "1":
+    stop(
+        f"{tag} no se cierra: el código cambió desde la última verificación completa en verde, "
+        "o no hay ninguna. Ejecuta ./init.sh y vuelve a cerrar"
+    )
+feat["status"] = "done"
+feat["closed"] = time.strftime("%Y-%m-%d")
+with open("feature_list.json", "w", encoding="utf-8", newline="\n") as fh:
+    fh.write(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+with open("progress/current.md", "w", encoding="utf-8", newline="\n") as fh:
+    fh.write(TEMPLATE)
+print(f"[OK]    {tag} cerrada el {feat['closed']}; progress/current.md, en su plantilla")
+PY
+  if [ $? -ne 0 ]; then
+    fail "La feature no se cerró: no se ha cambiado nada"
+    exit 1
+  fi
+fi
+
 echo ""
 echo "── 3. Validando la cola de features y los specs ───────"
 
@@ -76,7 +225,7 @@ try:
     data = json.load(open("feature_list.json", encoding="utf-8"))
     features = data["features"]
     VALID = {"pending", "spec_ready", "in_progress", "done", "blocked"}
-    SIZES = ("trivial", "small", "medium", "large")
+    SIZES = ("small", "medium", "large")
     # El spec de una feature large es corto (.claude/agents/spec_author.md). Se
     # mira también en pending, para que el spec_author lo vea antes de entregarlo.
     SPEC_MAX = 150
@@ -92,7 +241,9 @@ try:
         if st not in VALID:
             errors.append(f"{tag}: estado «{st}» inválido (vale {', '.join(sorted(VALID))})")
             continue
-        if size is not None and size not in SIZES:
+        if size == "trivial":
+            errors.append(f"{tag}: un cambio trivial no es una feature: sácalo de feature_list.json (.claude/agents/leader.md › Cambio trivial)")
+        elif size is not None and size not in SIZES:
             errors.append(f"{tag}: size «{size}» inválido: vale {', '.join(SIZES)} (docs/verification.md)")
         if st in ("spec_ready", "in_progress") and size is None:
             errors.append(f"{tag} está en {st} sin «size»: lo pone el leader al confirmar la entrevista")
@@ -119,7 +270,7 @@ try:
     current = re.sub(r"<!--.*?-->", "", current, flags=re.S)
     closed = {f.get("id"): f.get("name") for f in features if f.get("status") == "done"}
     cited = re.findall(r"\*\*Feature:\*\*[ \t]*F-(\d+)", current)
-    cited += re.findall(r"^## (?:Decisiones|Plan) — F-(\d+)", current, flags=re.M)
+    cited += re.findall(r"^## (?:Decisiones|Plan|Diseño) — F-(\d+)", current, flags=re.M)
     for fid in sorted({int(i) for i in cited} & set(closed)):
         errors.append(
             f"progress/current.md conserva F-{fid} ({closed[fid]}), ya cerrada: déjalo en su plantilla "
@@ -228,7 +379,19 @@ else
   warn "Carpeta tests/ no existe todavía"
 fi
 
+# En verde, se anota qué código se comprobó: --status y --close miran esa
+# huella en vez de repetir la verificación.
+if [ $EXIT_CODE -eq 0 ]; then
+  stamp save "${TEST_COUNT:-sin recuento de tests}"
+fi
+
 fi  # STATUS_ONLY
+
+if [ "$CHECK_ONLY" -eq 0 ]; then
+
+VERIFIED=0
+stamp check && VERIFIED=1
+export VERIFIED
 
 echo ""
 echo "── 5. Estado del trabajo ───────────────────────────────"
@@ -258,6 +421,12 @@ except Exception as e:
     print(f"[WARN]  No se pudo leer feature_list.json: {e}")
     raise SystemExit(0)
 
+verified = os.environ.get("VERIFIED") == "1"
+try:
+    stamp = json.load(open(os.environ["STAMP"], encoding="utf-8"))
+except (OSError, ValueError, KeyError):
+    stamp = {}
+
 order = ["in_progress", "spec_ready", "blocked", "pending", "done"]
 def counts(fs):
     return ", ".join(f"{n} {s}" for s in order if (n := sum(1 for f in fs if f.get("status") == s))) or "ninguna"
@@ -280,6 +449,9 @@ for f in real:
     tag = f"F-{f.get('id')} {name}"
     review_path = os.path.join(area(f, "progress"), f"review_{name}.md")
     implemented = os.path.isfile(os.path.join(area(f, "progress"), f"impl_{name}.md"))
+    # Una small la implementa el leader, sin informe: su señal es la
+    # verificación completa en verde hecha con ella en curso.
+    small_done = size == "small" and verified and stamp.get("feature") == f.get("id")
     if st == "pending" and re.search(rf"^## Plan — F-{f.get('id')}\b", current, flags=re.M):
         print(f"  ESPERA AL USUARIO:     {tag} tiene su plan en progress/current.md; falta que lo apruebe")
     elif st == "spec_ready":
@@ -292,6 +464,8 @@ for f in real:
             print(f"  En curso:              {tag}; el reviewer pidió cambios ({review_path})")
         elif screenshot.search(review):
             print(f"  ESPERA AL USUARIO:     {tag}; el reviewer pide permiso para una captura de pantalla ({review_path})")
+        elif small_done:
+            print(f"  ESPERA AL USUARIO:     {tag} está implementada y verificada; falta su aprobación final")
         elif implemented and size != "large":
             print(f"  ESPERA AL USUARIO:     {tag} está implementada; falta su aprobación final")
         elif implemented:
@@ -307,6 +481,10 @@ if pending:
 # Cuenta también las de ejemplo: un id no se reutiliza.
 used = [f.get("id") for f in feats if isinstance(f.get("id"), int)]
 print(f"  Siguiente id libre:    F-{max(used, default=0) + 1}")
+if verified:
+    print(f"  Verificación completa: en verde para el código actual ({stamp.get('tests')}, {stamp.get('at')}): no la repitas")
+else:
+    print("  Verificación completa: el código cambió desde la última en verde, o no hay ninguna: ./init.sh")
 
 reg = prose(read(os.path.join("progress", "pending.md")))
 q = len(re.findall(r"^#{3,4} Q\d+", reg, flags=re.M))
@@ -329,6 +507,8 @@ try:
 except Exception:
     print("  Git:                   no se pudo consultar")
 PY
+
+fi  # CHECK_ONLY
 
 echo ""
 echo "── 6. Resumen ──────────────────────────────────────────"

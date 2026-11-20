@@ -10,8 +10,8 @@
       "done",
       "blocked"
     ],
-    "size": "trivial, small, medium or large. The leader proposes it in the interview and the user confirms it before the feature leaves pending. It decides the flow: trivial goes straight to the implementer; small and medium get a short plan the user approves; large gets a spec (specs/<name>/spec.md) and a reviewer. docs/verification.md says what each size verifies",
-    "closed": "a done feature carries its \"closed\" date (YYYY-MM-DD), set only after the user's final approval",
+    "size": "small, medium or large. The leader proposes it in the interview and the user confirms it before the feature leaves pending. It decides the flow: small and medium get a short plan the user approves (the leader implements a small one itself; a medium one goes to the implementer with its design); large gets a spec (specs/<name>/spec.md) and a reviewer. A trivial change is not a feature and never enters this list (.claude/agents/leader.md, Cambio trivial). docs/verification.md says what each size verifies",
+    "closed": "a done feature carries its \"closed\" date (YYYY-MM-DD), set by ./init.sh --close <id>, only after the user's final approval",
     "ids": "the next free id is the one ./init.sh prints; ids are never reused",
     "example_features": "features with \"example\": true belong to the sample project; the leader removes them before the first real feature when the real project already has code or is not Python, otherwise after closing the first real feature",
     "citation": "a feature is cited as F-<id> (e.g. F-12), with the number of its id field"
@@ -183,21 +183,6 @@
         "Si el archivo de notas no existía, `clear --yes` sale con exit code 0 e informa `borradas 0 notas`",
         "tests/test_cli.py cubre: sin `--yes` (no destructivo), con `--yes` y notas presentes, con `--yes` y archivo vacío"
       ]
-    },
-    {
-      "id": 12,
-      "name": "storage_test_line_length",
-      "title": "Línea de 104 caracteres en test_storage",
-      "status": "done",
-      "size": "trivial",
-      "example": true,
-      "description": "Parte la línea 24 de tests/test_storage.py, que mide 104 caracteres, para que cumpla la longitud máxima de línea del ejemplo. La detectó lint.sh: «104 caracteres: parte la línea, el máximo es 100».",
-      "acceptance": [
-        "Ninguna línea de tests/test_storage.py pasa de 100 caracteres",
-        "El test conserva los mismos datos y comprueba lo mismo: solo cambia cómo se parte la línea",
-        "./init.sh termina en verde, con el análisis estático (lint.sh) y los tests"
-      ],
-      "closed": "2026-11-16"
     }
   ]
 }

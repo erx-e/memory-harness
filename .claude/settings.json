@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -c \"\nimport json, os, sys\nd = json.load(sys.stdin)\nagent = d.get('agent_type') or 'sesión principal'\npath = os.path.abspath((d.get('tool_input') or {}).get('file_path') or '.')\nfor root in (d.get('cwd'), os.environ.get('CLAUDE_PROJECT_DIR')):\n    if not root:\n        continue\n    try:\n        rel = os.path.relpath(path, root).replace(os.sep, '/')\n        top = rel.split('/')[0]\n    except ValueError:\n        continue\n    if rel == '.claude/state' or rel.startswith('.claude/state/'):\n        print('[harness] Bloqueado: .claude/state/ lo escriben solo los hooks del harness.', file=sys.stderr)\n        sys.exit(2)\n    if top in ('src', 'tests') and agent != 'implementer':\n        print('[harness] Bloqueado: solo el subagente implementer escribe en src/ y tests/ (agente actual: ' + agent + '). Delega el cambio con la herramienta Agent.', file=sys.stderr)\n        sys.exit(2)\n\""
+            "command": "python3 -c \"\nimport json, os, sys\nd = json.load(sys.stdin)\nagent = d.get('agent_type')\npath = os.path.abspath((d.get('tool_input') or {}).get('file_path') or '.')\nfor root in (d.get('cwd'), os.environ.get('CLAUDE_PROJECT_DIR')):\n    if not root:\n        continue\n    try:\n        rel = os.path.relpath(path, root).replace(os.sep, '/')\n        top = rel.split('/')[0]\n    except ValueError:\n        continue\n    if rel == '.claude/state' or rel.startswith('.claude/state/'):\n        print('[harness] Bloqueado: .claude/state/ lo escriben solo los scripts del harness.', file=sys.stderr)\n        sys.exit(2)\n    if top not in ('src', 'tests') or agent == 'implementer':\n        continue\n    main = agent in (None, 'leader')\n    try:\n        feats = json.load(open(os.path.join(root, 'feature_list.json'), encoding='utf-8'))['features']\n    except Exception:\n        feats = []\n    if main and any(f.get('status') == 'in_progress' and f.get('size') == 'small' for f in feats):\n        continue\n    if main:\n        print('[harness] Bloqueado: la sesión principal solo escribe en src/ y tests/ mientras hay una feature small en in_progress (plan aprobado por el humano). Si es trivial, medium o large, delega el cambio en el implementer con la herramienta Agent.', file=sys.stderr)\n    else:\n        print('[harness] Bloqueado: en src/ y tests/ solo escriben el implementer y, en una feature small, la sesión principal (agente actual: ' + agent + ').', file=sys.stderr)\n    sys.exit(2)\n\""
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -c \"\nimport json, os, subprocess, sys\nd = json.load(sys.stdin)\nroots = [r for r in (d.get('cwd'), os.environ.get('CLAUDE_PROJECT_DIR')) if r and os.path.isfile(os.path.join(r, 'init.sh'))]\nif not roots:\n    sys.exit(0)\nrun = subprocess.run(['bash', 'init.sh', '--status'], cwd=roots[0], capture_output=True, text=True)\nif not run.returncode:\n    sys.exit(0)\nif d.get('stop_hook_active'):\n    print(json.dumps({'systemMessage': '[harness] init.sh --status sigue en rojo: el turno termina sin validaciones en verde.'}))\n    sys.exit(0)\nprint('[harness] init.sh --status FALLÓ. Resuélvelo antes de terminar el turno:', file=sys.stderr)\nprint(chr(10).join((run.stdout + run.stderr).strip().splitlines()[-20:]), file=sys.stderr)\nsys.exit(2)\n\"",
+            "command": "python3 -c \"\nimport json, os, subprocess, sys\nd = json.load(sys.stdin)\nroots = [r for r in (d.get('cwd'), os.environ.get('CLAUDE_PROJECT_DIR')) if r and os.path.isfile(os.path.join(r, 'init.sh'))]\nif not roots:\n    sys.exit(0)\nrun = subprocess.run(['bash', 'init.sh', '--check'], cwd=roots[0], capture_output=True, text=True)\nif not run.returncode:\n    sys.exit(0)\nif d.get('stop_hook_active'):\n    print(json.dumps({'systemMessage': '[harness] init.sh --check sigue en rojo: el turno termina sin validaciones en verde.'}))\n    sys.exit(0)\nprint('[harness] init.sh --check FALLÓ. Resuélvelo antes de terminar el turno:', file=sys.stderr)\nprint(chr(10).join((run.stdout + run.stderr).strip().splitlines()[-20:]), file=sys.stderr)\nsys.exit(2)\n\"",
             "timeout": 120
           }
         ]
@@ -39,6 +39,8 @@
     "allow": [
       "Bash(./init.sh)",
       "Bash(./init.sh --status)",
+      "Bash(./init.sh --check)",
+      "Bash(./init.sh --close *)",
       "Bash(./lint.sh)",
       "Bash(python3 -m unittest*)",
       "Bash(python3 -m src.cli*)",

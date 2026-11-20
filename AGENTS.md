@@ -9,17 +9,17 @@
 | Archivo | Qué es | Quién lo lee |
 |---|---|---|
 | `feature_list.json` | La cola de features y las cerradas | El leader |
-| `progress/current.md` | La feature en curso: decisiones, plan aprobado y estado | Leader e implementer |
+| `progress/current.md` | La feature en curso: decisiones, plan aprobado, su diseño y estado | Leader e implementer |
 | `progress/pending.md` | Decisiones que esperan al humano (`Q<n>`) y deuda (`D<n>`) | El leader, cuando hace falta |
 | `specs/<name>/spec.md` | El spec de una feature `large` | Implementer y reviewer de esa feature |
-| `progress/impl_<name>.md`, `progress/review_<name>.md` | Informes cortos del implementer y del reviewer | El leader |
+| `progress/impl_<name>.md`, `progress/review_<name>.md` | Informes cortos del implementer (no en `small`) y del reviewer | El leader |
 | `docs/brief.md` | Para qué existe el proyecto y qué NO hace | Leader y spec_author |
 | `docs/architecture.md`, `docs/conventions.md` | Las reglas del código | Implementer, reviewer y spec_author |
 | `docs/verification.md` | Qué verificar según el tamaño del cambio, y las trampas del entorno | Implementer y reviewer |
 | `docs/lessons.md` | Trampas, callejones sin salida y decisiones que no se reabren | Todos, antes de «arreglar» algo que parece raro |
 | `docs/project-setup.md` | Preparar el proyecto y retirar el ejemplo | El leader, una vez por proyecto |
 | `docs/graphify.md`, `docs/ui-review.md` | Guías puntuales: el grafo y el navegador | Solo si las necesitas |
-| `init.sh`, `lint.sh` | `./init.sh`: verificación completa; `./init.sh --status`: rápida | Se ejecutan, no se leen |
+| `init.sh`, `lint.sh` | `./init.sh`: verificación completa; `--status`: rápida, con el estado; `--check`: solo las validaciones; `--close <id>`: cierra la feature | Se ejecutan, no se leen |
 | `src/`, `tests/` | El código de la aplicación y sus tests | Para implementar y verificar |
 | `docs/example/`, `specs/example/`, `progress/example/` | El proyecto de muestra: sus docs, specs, informes y pendientes | Solo en features con `"example": true` |
 
@@ -27,9 +27,13 @@
 
 - **Una feature a la vez.** Solo el leader cambia su `status`, y solo el
   humano aprueba un plan, un spec o un cambio.
-- **Solo el implementer escribe en `src/` y `tests/`.** El hook H1 lo impone
-  para `Edit` y `Write`; con Bash está igual de prohibido.
-- **Nada se da por terminado sin `./init.sh` en verde.**
+- **En `src/` y `tests/` escriben el implementer y, en una feature `small`,
+  el leader.** El hook H1 lo impone para `Edit` y `Write`; con Bash está
+  igual de prohibido.
+- **Nada se da por terminado sin `./init.sh` en verde**, y se ejecuta una vez
+  por feature: lo lanza quien implementa, al terminar. Queda anotado qué
+  código comprobó; los demás miran `./init.sh --status`, que dice si sigue
+  valiendo, y solo lo repiten si el código cambió.
 - **Verificación proporcional** (`docs/verification.md`): un test por regla y
   su borde. Levantar la app, contenedores o un navegador, solo si el plan o el
   spec aprobado lo justifican.
@@ -52,16 +56,22 @@
 ## Flujo
 
 ```
-pending → [entrevista y tamaño] → plan (spec si es large) → ⏸ HUMANO → in_progress → [implementer (+ reviewer si es large)] → ⏸ HUMANO → done
+pending → [entrevista y tamaño] → plan (spec si es large) → ⏸ HUMANO → in_progress → [implementación (+ reviewer si es large)] → ⏸ HUMANO → done
 ```
 
-Una feature trivial no lleva entrevista ni plan: implementer → ⏸ HUMANO. El
+Quién implementa depende del tamaño: una `small`, el leader en su misma
+sesión, sin subagente; `medium` y `large`, el implementer, que recibe el
+diseño ya decidido junto al plan o en el spec. Un cambio trivial no es una
+feature: no entra en la cola ni lleva plan; implementer → ⏸ HUMANO. El
 detalle lo lleva el leader (`.claude/agents/leader.md`).
 
 ## Hooks
 
-- **H1:** `Edit` y `Write` en `src/` y `tests/`, solo el implementer.
+- **H1:** `Edit` y `Write` en `src/` y `tests/`, solo el implementer y,
+  mientras hay una feature `small` en `in_progress`, la sesión principal; en
+  `.claude/state/`, nadie.
 - **Al iniciar la sesión:** `./init.sh --status` da el estado real del
   proyecto, que manda sobre lo escrito en `progress/`.
-- **Al terminar cada turno:** `./init.sh --status`. Si falla, no se puede
-  terminar hasta resolverlo, o explicárselo al humano.
+- **Al terminar cada turno:** `./init.sh --check` (las validaciones, sin el
+  estado del trabajo). Si falla, no se puede terminar hasta resolverlo, o
+  explicárselo al humano.

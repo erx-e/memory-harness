@@ -12,12 +12,13 @@
 
 Esta sección no se rellena: rige en todos los proyectos del harness. El
 tamaño es el campo `"size"` de la feature: lo propone el leader y lo confirma
-el humano.
+el humano. Un cambio `trivial` no es una feature: no entra en la cola
+(`.claude/agents/leader.md` › Cambio trivial).
 
 | Tamaño | Qué cambia | Verificación |
 |---|---|---|
 | `trivial` | Un texto, un estilo o un renombre, sin lógica | `./init.sh`; un test se actualiza solo si comprueba el texto que cambia |
-| `small` | Una regla, un tope, una validación, un mensaje, un campo o una opción de algo que ya existe | Un test por regla y su borde, y `./init.sh` |
+| `small` | Una regla, un tope, una validación, un mensaje, un campo o una opción de algo que ya existe | Un test por regla y su borde, y `./init.sh`. La implementa el leader, sin subagente |
 | `medium` | Una pieza nueva o cambiada con lógica propia (un caso de uso, una consulta, un comando, un endpoint, una pantalla), sin flujo que cruce varios componentes ni migración | Los tests de lo que cambia (abajo) y `./init.sh` |
 | `large` | Un flujo nuevo que cruza componentes, una migración o un refactor | Lo mismo, con spec y reviewer |
 
@@ -29,8 +30,11 @@ el humano.
   navegador: en ningún tamaño por defecto.** Solo si algo no se puede
   comprobar de otra forma (tests, compilación, lectura del código) y el plan
   o el spec aprobado lo justifica.
-- **`./init.sh` completo, una vez, al final** (y otra tras arreglar lo que
-  falle). Mientras trabajas, solo los tests que tocas.
+- **`./init.sh` completo, una vez por feature, al final** (y otra tras
+  arreglar lo que falle). Mientras trabajas, solo los tests que tocas. Lo
+  ejecuta quien implementa; en verde, anota qué código comprobó, y quien
+  venga después (leader, reviewer, el cierre) mira `./init.sh --status`, que
+  dice si sigue valiendo. Solo se repite si el código cambió.
 
 **Ejemplo del fallo** (de un proyecto real con este harness): una regex y dos
 topes de longitud, unas 40 líneas, se verificaron con la base de datos en
