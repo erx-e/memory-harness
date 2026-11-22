@@ -52,6 +52,17 @@ privados.>
 - <Cómo se agrupan (clases, bloques, módulos).>
 - <Qué recursos reales usan y cómo limpian tras de sí.>
 - <Cómo se nombra cada test: el patrón y un ejemplo.>
+- <Propiedades: con qué librería se escribe un test con entradas generadas,
+  cómo se nombra y un ejemplo; cómo se suben sus iteraciones y cómo se
+  repite un fallo, con comandos comprobados. Si todavía no hay librería,
+  dilo y apúntalo como deuda en `progress/pending.md`.>
+- Una propiedad genera entradas nuevas en cada ejecución, y su resultado
+  esperado sale de la regla, no del código que se prueba: dos campos que
+  deben cuadrar, una ida y vuelta de escribir y leer, o un cálculo
+  independiente y más simple. Cuando falla, su entrada mínima se fija como
+  un test normal, que queda de regresión, y se arregla la causa; si la
+  feature no tocó ese código, el fallo es real igualmente: se reporta, no
+  se repite la ejecución hasta que pase. Esta línea no se rellena.
 - Cuántos: un test por regla y su borde, más el caso que motivó el cambio
   (`docs/verification.md`). Esta línea no se rellena: rige en todos los
   proyectos.

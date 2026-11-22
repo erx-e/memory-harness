@@ -41,18 +41,20 @@ reales con huecos y **falla** si una pasa de `pending` con ellos. La marca
      (paso 3), y en el doc queda «(lo comprueba `lint.sh`)» en lugar de la
      instrucción. Como muestra, `docs/example/` y el bloque «Ejemplo» de
      `lint.sh`.
-   - Las partes marcadas «no se rellena» (los tamaños de
-     `docs/verification.md`, la línea «Cuántos» de las convenciones, el
-     tercer principio) se dejan como están: rigen en todos los proyectos.
+   - Las partes marcadas «no se rellena» (los tamaños y los dos primeros
+     anti-patrones de `docs/verification.md`, la línea «Cuántos» y la de las
+     propiedades en las convenciones, el tercer principio) se dejan como
+     están: rigen en todos los proyectos.
    - Al rellenar un archivo, quita su nota «Plantilla» y el texto que solo
      explica cómo rellenarlo. Los agentes leen estos archivos en cada
      feature: lo que no es una regla del proyecto solo gasta contexto.
 3. **Comandos del stack**: si el proyecto no usa Python, acuerda con el
    humano su comando de tests y cámbialo en `init.sh` (sección 4) y en
    `.claude/settings.json`: los permisos `Bash(python3 …)` y, si su código no
-   vive en `src/` y `tests/`, las carpetas que vigila el hook H1. Hazlo antes
-   de retirar el ejemplo: sin sus tests, el comando de Python no tiene nada
-   que ejecutar.
+   vive en `src/` y `tests/`, las carpetas que vigila el hook H1 y la
+   condición con que reconoce un archivo de test, que es lo único que deja
+   escribir al adversary. Hazlo antes de retirar el ejemplo: sin sus tests,
+   el comando de Python no tiene nada que ejecutar.
 
    Acuerda también con el humano el análisis estático (linter, comprobación
    de tipos, reglas de imports) y escríbelo en el bloque «Proyecto» de
@@ -63,6 +65,13 @@ reales con huecos y **falla** si una pasa de `pending` con ellos. La marca
    `D<n>`. Después borra la línea `SIN_CONFIGURAR`. Si el humano decide no
    tener análisis estático, borra igualmente la línea y anota su decisión en
    ese bloque.
+
+   Acuerda, por último, la librería de tests de propiedades del stack
+   (Hypothesis, fast-check, CsCheck…), que usan los planes y el adversary:
+   entra como dependencia de desarrollo, y `docs/conventions.md` › Tests dice
+   cómo se escribe una propiedad, cómo se suben sus iteraciones y cómo se
+   repite un fallo, con comandos comprobados. Si el humano la deja para
+   después, anótala como `D<n>`.
 4. **Ejemplo**: si el proyecto ya tiene código propio o su stack no es
    Python, retíralo ahora (sección siguiente). Si empieza de cero y usa
    Python, se queda hasta el cierre de la primera feature real.

@@ -23,18 +23,31 @@ el humano. Un cambio `trivial` no es una feature: no entra en la cola
 | `large` | Un flujo nuevo que cruza componentes, una migración o un refactor | Lo mismo, con spec y reviewer |
 
 - **Tests: uno por regla y su borde** (el valor justo, que pasa, y el
-  siguiente, que falla), más el caso que motivó el cambio. Nada de barridos
-  exhaustivos, oráculos ni tests de rendimiento, salvo que el plan o el spec
-  lo pidan; aun así, un caso representativo.
+  siguiente, que falla), más el caso que motivó el cambio. Una regla que vale
+  para toda entrada (un cálculo, un redondeo, un dígito verificador, una ida
+  y vuelta de escribir y leer, una transición de estado) lleva además su
+  propiedad: un solo test con entradas generadas (`docs/conventions.md` ›
+  Tests). Nada de barridos escritos a mano ni tests de rendimiento, salvo que
+  el plan o el spec lo pidan; aun así, un caso representativo.
+- **Todo cambio con lógica se intenta romper** (`small`, `medium` y
+  `large`): al terminar la implementación, el adversary lo ataca con
+  propiedades y bordes, y deja en el código un test en rojo por cada fallo
+  (`.claude/agents/adversary.md`). Lo que rompe se arregla antes de pedir la
+  aprobación, y sus tests se quedan.
+- **Un chequeo que nunca se ha visto fallar no prueba nada.** Un test del
+  adversary nace en rojo. Una propiedad que escribe quien implementa se ve
+  fallar una vez: rompe la línea que protege, comprueba que falla y
+  restáurala.
 - **Levantar la app o servicios (contenedores, base de datos, API) y el
   navegador: en ningún tamaño por defecto.** Solo si algo no se puede
   comprobar de otra forma (tests, compilación, lectura del código) y el plan
   o el spec aprobado lo justifica.
 - **`./init.sh` completo, una vez por feature, al final** (y otra tras
-  arreglar lo que falle). Mientras trabajas, solo los tests que tocas. Lo
-  ejecuta quien implementa; en verde, anota qué código comprobó, y quien
-  venga después (leader, reviewer, el cierre) mira `./init.sh --status`, que
-  dice si sigue valiendo. Solo se repite si el código cambió.
+  arreglar lo que falle o lo que rompa el adversary). Mientras trabajas, solo
+  los tests que tocas. Lo ejecuta quien implementa; en verde, anota qué
+  código comprobó, y quien venga después (leader, reviewer, el cierre) mira
+  `./init.sh --status`, que dice si sigue valiendo. Solo se repite si el
+  código cambió.
 
 **Ejemplo del fallo** (de un proyecto real con este harness): una regex y dos
 topes de longitud, unas 40 líneas, se verificaron con la base de datos en
@@ -65,6 +78,12 @@ aplica: sin interfaz».> Para el navegador, `docs/ui-review.md`.
 
 ## Anti-patrones (no hacer)
 
+Los dos primeros no se rellenan: rigen en todos los proyectos.
+
+- ❌ Cambiar o saltar un test del adversary para que pase. → se arregla la
+  causa; si pide algo que el plan no pide, decide el humano.
+- ❌ Una propiedad cuyo resultado esperado se calcula con el código que
+  prueba. → sale de la regla.
 - ❌ <Práctica que no cuenta como verificación.> → <qué hacer en su lugar>
 
 ## Trampas del entorno

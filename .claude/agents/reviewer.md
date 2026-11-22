@@ -14,7 +14,8 @@ editas código. El mapa y las reglas comunes están en `AGENTS.md`.
 
 La entrada de la feature, su fuente (`specs/<name>/spec.md` o el plan de
 `progress/current.md`), `progress/impl_<name>.md` (una `small` no lo tiene:
-la implementó el leader) y la ronda (`N/3`). Lee
+la implementó el leader), `progress/adversary_<name>.md` y la ronda (`N/3`).
+Los tests del adversary y sus arreglos son parte del cambio. Lee
 `docs/architecture.md`, `docs/conventions.md` y `docs/verification.md`, y de
 `docs/lessons.md` lo que toque. En una feature de ejemplo, las rutas están en
 `example/`.

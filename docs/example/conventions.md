@@ -53,6 +53,9 @@ from src.notes import Note
 - Cada test usa un `tempfile.TemporaryDirectory()` y limpia tras de sí.
   `lint.sh` rechaza los mocks del filesystem.
 - Nombres de test descriptivos: `test_load_returns_empty_when_file_missing`.
+- Propiedades: ninguna. El ejemplo no admite dependencias y no lleva
+  librería de entradas generadas (en Python sería Hypothesis): el adversary
+  ataca aquí con los bordes.
 - Cuántos: un test por regla y su borde, más el caso que motivó el cambio
   (`docs/verification.md`).
 

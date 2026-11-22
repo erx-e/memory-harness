@@ -443,12 +443,15 @@ if example:
 approved = re.compile(r"^\*\*Veredicto:\*\*\s*APPROVED\s*$", re.M)
 changes = re.compile(r"^\*\*Veredicto:\*\*\s*CHANGES_REQUESTED\s*$", re.M)
 screenshot = re.compile(r"^\*\*Veredicto:\*\*\s*SCREENSHOT_REQUESTED\s*$", re.M)
+broken = re.compile(r"^\*\*Veredicto:\*\*\s*BROKEN\s*$", re.M)
+not_broken = re.compile(r"^\*\*Veredicto:\*\*\s*NOT_BROKEN\s*$", re.M)
 current = prose(read(os.path.join("progress", "current.md")))
 for f in real:
     name, st, size = f.get("name"), f.get("status"), f.get("size")
     tag = f"F-{f.get('id')} {name}"
     review_path = os.path.join(area(f, "progress"), f"review_{name}.md")
     implemented = os.path.isfile(os.path.join(area(f, "progress"), f"impl_{name}.md"))
+    adversary_path = os.path.join(area(f, "progress"), f"adversary_{name}.md")
     # Una small la implementa el leader, sin informe: su señal es la
     # verificación completa en verde hecha con ella en curso.
     small_done = size == "small" and verified and stamp.get("feature") == f.get("id")
@@ -458,12 +461,20 @@ for f in real:
         print(f"  ESPERA AL USUARIO:     {tag} tiene su spec en {area(f, 'specs')}/{name}/spec.md; falta que lo apruebe")
     elif st == "in_progress":
         review = read(review_path)
+        # El adversary va después de implementar y antes del reviewer: deja sus
+        # tests en rojo (BROKEN) o nada (NOT_BROKEN) (leader.md › Cierre).
+        adversary = read(adversary_path)
+        attacked = broken.search(adversary) or not_broken.search(adversary)
         if approved.search(review):
             print(f"  ESPERA AL USUARIO:     {tag} está revisada (APPROVED); falta su aprobación final")
         elif changes.search(review):
             print(f"  En curso:              {tag}; el reviewer pidió cambios ({review_path})")
         elif screenshot.search(review):
             print(f"  ESPERA AL USUARIO:     {tag}; el reviewer pide permiso para una captura de pantalla ({review_path})")
+        elif broken.search(adversary) and not verified:
+            print(f"  En curso:              {tag}; el adversary la rompió ({adversary_path}): falta el arreglo y ./init.sh")
+        elif (small_done or implemented) and not attacked:
+            print(f"  En curso:              {tag}; implementada, falta el adversary")
         elif small_done:
             print(f"  ESPERA AL USUARIO:     {tag} está implementada y verificada; falta su aprobación final")
         elif implemented and size != "large":

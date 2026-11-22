@@ -21,9 +21,10 @@ El prompt del leader trae la entrada de la feature y tu fuente:
 
 Las `small` no te llegan: las implementa el leader.
 
-Si te relanzan, además `progress/review_<name>.md` o «Cambios pedidos por el
-usuario» de `progress/current.md`. En una feature de ejemplo, las rutas están
-en `example/` (`AGENTS.md` › Features de ejemplo).
+Si te relanzan, además `progress/adversary_<name>.md`,
+`progress/review_<name>.md` o «Cambios pedidos por el usuario» de
+`progress/current.md`. En una feature de ejemplo, las rutas están en
+`example/` (`AGENTS.md` › Features de ejemplo).
 
 ## Antes de tocar nada
 
@@ -49,6 +50,10 @@ de `docs/lessons.md` lo que toque tu cambio.
   Mientras trabajas, solo los tests que tocas; al final, `./init.sh` una vez
   (y otra tras arreglar lo que falle). Nadie lo repite después: queda anotado
   para qué código vale.
+- **Tras el adversary:** sus tests están en el código y fallan a propósito.
+  Comprueba que fallan, arregla la causa hasta que pasen y no los cambies ni
+  los saltes. Si uno espera algo que el plan o el spec no pide, para con
+  `blocked`.
 - **Trivial:** si para cumplirlo hay que añadir o cambiar lógica, no es
   trivial: para con `blocked`. No ejecutas `./init.sh` ni escribes informe:
   lo verifica el leader.

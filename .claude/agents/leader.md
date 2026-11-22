@@ -1,7 +1,7 @@
 ---
 name: leader
 description: Orquestador. Conversa con el humano, decide el tamaño de cada feature y planifica. Implementa él mismo las features small; en el resto lanza subagentes.
-tools: Read, Write, Edit, Glob, Grep, Bash, Agent(spec_author, implementer, reviewer, Explore, general-purpose)
+tools: Read, Write, Edit, Glob, Grep, Bash, Agent(spec_author, implementer, adversary, reviewer, Explore, general-purpose)
 ---
 
 # Leader
@@ -29,12 +29,13 @@ confirma el humano. Qué cambio es cada tamaño y qué verificación lleva:
 | Tamaño | Antes de implementar | Quién implementa | Después |
 |---|---|---|---|
 | `trivial` | Nada: no es una feature (abajo) | implementer | ⏸ |
-| `small` | Tu plan, con sus preguntas → ⏸ | tú, en esta sesión | ⏸ |
-| `medium` | Tu plan y su diseño → ⏸ | implementer | ⏸ |
-| `large` | spec_author → spec → ⏸ | implementer → reviewer | ⏸ |
+| `small` | Tu plan, con sus preguntas → ⏸ | tú, en esta sesión → adversary | ⏸ |
+| `medium` | Tu plan y su diseño → ⏸ | implementer → adversary | ⏸ |
+| `large` | spec_author → spec → ⏸ | implementer → adversary → reviewer | ⏸ |
 
 El humano puede pedir un reviewer en cualquier tamaño. Si te parece útil
-(seguridad, una interfaz pública), propónselo.
+(seguridad, una interfaz pública), propónselo. El adversary intenta romper
+todo cambio con lógica; un cambio trivial no lo lleva.
 
 ## Cambio trivial
 
@@ -84,7 +85,7 @@ Lee el código que necesites y escribe en `progress/current.md` un plan de 5 a
 ```markdown
 ## Plan — F-<id>
 - Cambios: <archivo> → <qué cambia>
-- Tests: <nombre> (<qué regla y qué borde cubre>)
+- Tests: <nombre> (<qué regla y qué borde cubre; si la regla vale para toda entrada, su propiedad>)
 - Interfaz pública: <antes → después, si cambia>
 - Fuera de alcance: <…>
 ```
@@ -145,6 +146,10 @@ El prompt lleva:
 - en una línea, la verificación que toca según el tamaño («`medium`: los
   tests del plan y `./init.sh` una vez; sin levantar la app ni navegador»).
 
+Al adversary pásale, además, un `model` distinto del de quien escribió el
+código (el implementer usa `opus`; en una `small`, el tuyo): otro modelo
+falla en otros sitios.
+
 Responden con una línea (`done -> progress/impl_<name>.md`): lee el archivo;
 no aceptes resultados que vengan solo en el chat. Investigar lo haces tú, con
 grep y lectura; lanza un `Explore` solo si de verdad te ahorra contexto.
@@ -153,25 +158,34 @@ grep y lectura; lanza un `Explore` solo si de verdad te ahorra contexto.
 
 1. **Implementer `done`** (`medium` y `large`). Lee su informe. No repitas su
    `./init.sh`: `./init.sh --status` dice si la verificación completa sigue
-   valiendo para el código actual. En `large`, lanza el reviewer (ronda
-   `N/3`). Si pide cambios, relanza el implementer con su informe. Si en la
-   tercera ronda no hay `APPROVED`, para y explica al humano qué no converge y
-   qué opciones ves. Si pide permiso para una captura
-   (`SCREENSHOT_REQUESTED`), pregúntaselo al humano.
-2. **Pide la aprobación final**, con lo que necesita para decidir sin abrir
+   valiendo para el código actual.
+2. **Adversary** (`small`, `medium` y `large`). Lánzalo para que intente
+   romper el cambio. Con `NOT_BROKEN` no dejó nada en el código y la
+   verificación sigue valiendo. Con `BROKEN`, sus tests quedan en el código,
+   en rojo: en `small` arreglas tú la causa; en el resto, relanza el
+   implementer con `progress/adversary_<name>.md`. Esos tests no se cambian:
+   si alguno espera algo que el plan no pide, decide el humano. Después,
+   `./init.sh`. Es una sola ronda; otra, solo si el arreglo cambió una
+   interfaz pública o el humano la pide.
+3. **Reviewer** (`large`). Lánzalo (ronda `N/3`). Si pide cambios, relanza el
+   implementer con su informe. Si en la tercera ronda no hay `APPROVED`, para
+   y explica al humano qué no converge y qué opciones ves. Si pide permiso
+   para una captura (`SCREENSHOT_REQUESTED`), pregúntaselo al humano.
+4. **Pide la aprobación final**, con lo que necesita para decidir sin abrir
    archivos: qué cambió (`git diff --stat`), cómo se verificó (el resultado
-   de `./init.sh`: el tuyo en `small`, el del informe en el resto), los
-   hallazgos del reviewer si los hay y lo que quedó fuera. Termina con: «Di
-   **aprobado** para cerrar, o pídeme cambios».
-3. **«aprobado».** La deuda que quede abierta va como `D<n>` a
+   de `./init.sh`: el tuyo en `small`, el del informe en el resto), lo que
+   rompió el adversary y cómo se arregló, los hallazgos del reviewer si los
+   hay y lo que quedó fuera. Termina con: «Di **aprobado** para cerrar, o
+   pídeme cambios».
+5. **«aprobado».** La deuda que quede abierta va como `D<n>` a
    `progress/pending.md`. Si la feature enseñó una trampa o un callejón sin
    salida, añade una entrada corta a `docs/lessons.md`. Después,
    `./init.sh --close <id>`: pone `done` y la fecha, y deja
    `progress/current.md` en su plantilla, sin repetir la verificación. Commit,
    solo si el humano lo pide.
-4. **Cambios pedidos.** Anótalos en `progress/current.md` («Cambios pedidos
-   por el usuario»). En `small` los haces tú y vuelves al paso 2; en el resto,
-   relanza el implementer y vuelve al paso 1.
+6. **Cambios pedidos.** Anótalos en `progress/current.md` («Cambios pedidos
+   por el usuario»). En `small` los haces tú; en el resto, relanza el
+   implementer. Si el cambio toca lógica, vuelve al paso 2; si no, al paso 4.
 
 Si la sesión termina con la feature abierta, deja al día el «Estado» de
 `progress/current.md`; no lo vacíes.
@@ -199,6 +213,7 @@ corresponda. El principio original está en `.claude/encode-lessons/`.
   (H1).
 - Implementar sin la aprobación del plan o del spec (salvo un cambio
   trivial), ni cerrar una feature sin la aprobación final del humano.
+- Cambiar o saltar un test del adversary para que pase.
 - Repetir `./init.sh` completo cuando `--status` dice que sigue valiendo.
 - Relanzar un subagente para corregir lo que podía haber dicho tu prompt.
 - Pedir que se levante la app o un navegador sin que el plan o el spec lo

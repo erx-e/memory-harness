@@ -5,8 +5,9 @@ verificable** con [Claude Code](https://github.com/anthropics/claude-code).
 Organiza el repositorio en torno a cinco ideas:
 
 - **Agentes con papeles separados**: uno orquesta, planifica y hace él mismo
-  los cambios pequeños; otro programa los medianos y los grandes; y, en los
-  grandes, uno especifica y otro revisa.
+  los cambios pequeños; otro programa los medianos y los grandes; otro
+  intenta romper cada cambio con tests; y, en los grandes, uno especifica y
+  otro revisa.
 - **El esfuerzo es proporcional al cambio**: cada feature tiene un tamaño
   (`small`, `medium` o `large`) y de él salen quién la implementa, el plan o
   el spec, los tests y la verificación. Siempre con tus dos aprobaciones. Un
@@ -66,7 +67,7 @@ hooks comprueban que se cumple. El sistema tiene seis piezas:
 | Pieza | Dónde está | Para qué sirve |
 |---|---|---|
 | Instrucciones | [`CLAUDE.md`](CLAUDE.md) → [`AGENTS.md`](AGENTS.md) y [`.claude/agents/`](.claude/agents/) | Las reglas comunes y lo que hace cada agente |
-| Agentes | `leader`, `implementer` y, en los cambios grandes, `spec_author` y `reviewer` | Repartir el trabajo y que nadie apruebe lo suyo |
+| Agentes | `leader`, `implementer`, `adversary` y, en los cambios grandes, `spec_author` y `reviewer` | Repartir el trabajo y que nadie apruebe lo suyo |
 | Memoria | [`feature_list.json`](feature_list.json), [`progress/`](progress/), `specs/` y [`docs/lessons.md`](docs/lessons.md) | Que nada dependa de que alguien recuerde |
 | Convenciones | [`docs/architecture.md`](docs/architecture.md), [`docs/conventions.md`](docs/conventions.md) y [`docs/verification.md`](docs/verification.md) | Dejar escrito qué es un buen trabajo y cuánto verificar |
 | Verificación | [`init.sh`](init.sh), [`lint.sh`](lint.sh) y los hooks de [`.claude/settings.json`](.claude/settings.json) | Que saltarse una regla produzca un fallo, y que lo que se puede comprobar sin juicio no dependa de que alguien lo lea |
@@ -124,6 +125,14 @@ tarea con ellas, pasó de 14,6 a 10,5 minutos y de 7,0 a 5,3 dólares, con la
 misma calidad; sin arnés eran 6,9 minutos y 3,9 dólares. Lo que queda de
 diferencia es el plan que apruebas antes de que se toque el código.
 
+La última pieza que entró va en sentido contrario, y a propósito. Todo lo
+anterior recorta proceso; el **adversary** añade un agente a cada feature con
+lógica, porque ahí se prefiere la calidad del código a su coste. Quien
+escribe un cambio lo prueba con los casos que imaginó al escribirlo, y nadie
+más lo ejecutaba para buscarle el fallo: ahora, tras implementar, otro
+agente, con otro modelo, intenta romperlo, y solo cuenta lo que demuestra
+con un test en rojo.
+
 ## Requisitos
 
 | Herramienta | ¿Hace falta? | Para qué |
@@ -174,9 +183,10 @@ Después, en el chat de Claude Code:
    enseña un plan corto en el chat; en una `large`, un spec en
    `specs/<feature>/spec.md`. Responde «aprobado» o pide cambios.
 4. **Aprueba el cambio.** El leader implementa la feature él mismo si es
-   `small`, o lanza al implementer (y al reviewer, si es `large`), y vuelve a
-   **parar** con un resumen: qué cambió y cómo se verificó. Responde
-   «aprobado» para cerrar la feature, o pide cambios.
+   `small`, o lanza al implementer. Después el adversary intenta romper el
+   cambio (y, si es `large`, lo revisa el reviewer), y el leader vuelve a
+   **parar** con un resumen: qué cambió, cómo se verificó y qué se rompió.
+   Responde «aprobado» para cerrar la feature, o pide cambios.
 
 Un cambio trivial (un texto, un renombre) no pasa por la cola: el leader
 confirma contigo que lo es, lo hace el implementer y tú lo apruebas.
@@ -205,23 +215,29 @@ confirma contigo que lo es, lo hace el implementer y tú lo apruebas.
 ## Los agentes
 
 Cada agente tiene su definición en [`.claude/agents/`](.claude/agents/), de
-entre 50 y unas 200 líneas. El leader usa el modelo de tu sesión; los tres
+entre 50 y unas 200 líneas. El leader usa el modelo de tu sesión; los cuatro
 subagentes fijan el suyo en la cabecera de su definición (`model: opus`), que
-es donde se cambia:
+es donde se cambia. Al adversary, además, el leader le pasa un modelo
+distinto del que escribió el código:
 
 | Agente | Qué hace | Qué puede escribir | Qué devuelve |
 |---|---|---|---|
 | **leader** (sesión principal) | Te entrevista, propone el tamaño, escribe el plan de las features `small` y `medium`, implementa las `small`, lanza a los demás, para en las puertas de aprobación y cierra | `feature_list.json`, `progress/` y `docs/`. `src/` y `tests/`, solo en una feature `small` con su plan aprobado | Mensajes para ti |
 | **implementer** | Hace lo que dicen el plan o el spec de una feature `medium` o `large`, con sus tests, y lo verifica. También los cambios triviales | `src/`, `tests/` y `progress/impl_<feature>.md` | `done -> progress/impl_<feature>.md` |
+| **adversary** | Tras implementar una feature `small`, `medium` o `large`: intenta romper el cambio con tests, sobre todo de propiedades | Solo tests, en `tests/`, y `progress/adversary_<feature>.md` | `BROKEN` o `NOT_BROKEN`, con la ruta del informe |
 | **spec_author** | Solo en features `large`: convierte la feature y tu entrevista en un spec corto | `specs/<feature>/spec.md` | `spec_ready -> specs/<feature>/spec.md` |
 | **reviewer** | En features `large`, o si lo pides: aprueba o rechaza el cambio contra el spec y los docs | Solo `progress/review_<feature>.md` | `APPROVED`, `CHANGES_REQUESTED` o `SCREENSHOT_REQUESTED`, con la ruta del informe |
 
 Nadie aprueba lo suyo: el spec_author no escribe código, el implementer no
-se aprueba a sí mismo y el reviewer no corrige. El leader programa solo las
-features `small`: ahí quien planifica implementa, porque pasarle un cambio
-pequeño a un agente que arranca de cero obliga a pensarlo dos veces. Por
-encima de todos, **solo tú apruebas** un plan, un spec o un cambio, y solo
-tú decides que algo es trivial.
+se aprueba a sí mismo, el adversary no arregla lo que rompe y el reviewer no
+corrige. El leader programa solo las features `small`: ahí quien planifica
+implementa, porque pasarle un cambio pequeño a un agente que arranca de cero
+obliga a pensarlo dos veces. Por encima de todos, **solo tú apruebas** un
+plan, un spec o un cambio, y solo tú decides que algo es trivial.
+
+El leader solo puede lanzar los agentes de la lista `Agent(...)` de su
+cabecera, y Claude Code carga las definiciones al iniciar la sesión: un
+agente nuevo, o un cambio en esa lista, vale desde la siguiente.
 
 ### Cómo se coordinan
 
@@ -254,7 +270,8 @@ tú decides que algo es trivial.
 |---|---|
 | implementer | `architecture.md`, `conventions.md` y `verification.md` (cortos), de `lessons.md` lo que toque su cambio, y el plan con su diseño o el spec |
 | spec_author | `brief.md` y `architecture.md`, de `lessons.md` lo que toque su diseño, y las decisiones de tu entrevista |
-| reviewer | Lo mismo que el implementer, más el spec, el informe del implementer y el diff |
+| adversary | De `conventions.md`, los tests; de `verification.md`, las trampas del entorno; de `lessons.md`, lo que toque; el plan o el spec, y el diff |
+| reviewer | Lo mismo que el implementer, más el spec, los informes del implementer y del adversary, y el diff |
 
 ### Cómo usan las skills
 
@@ -287,6 +304,7 @@ una línea que diga cuándo la lee. Sin esa línea, ningún agente la usa.
 | `progress/current.md` | leader | La feature en curso: tamaño, estado, decisiones de la entrevista, plan aprobado y, en `medium`, su diseño |
 | `specs/<feature>/spec.md` | spec_author | Solo en `large`: objetivo, requisitos con su test, diseño y tareas |
 | `progress/impl_<feature>.md` | implementer | Cambios, tests, resultado de `init.sh` y notas para el leader, en 15 líneas como mucho. Una `small` no lo lleva |
+| `progress/adversary_<feature>.md` | adversary | Veredicto, la intención que atacó, cada hallazgo con su test y su comando, y lo que no se rompió, en unas 30 líneas como mucho |
 | `progress/review_<feature>.md` | reviewer | Veredicto y hallazgos, en unas 30 líneas como mucho |
 | `feature_list.json` | leader | La cola de features y las cerradas, con su tamaño y su fecha de cierre |
 
@@ -305,11 +323,15 @@ flowchart TD
     G1 -->|"pides cambios"| E
     G1 -->|"aprobado, small"| L["El leader programa, prueba y ejecuta init.sh"]
     G1 -->|"aprobado, medium o large"| I["El implementer programa, prueba y ejecuta init.sh"]
-    I -->|"large"| V["El reviewer emite su veredicto"]
+    L --> A["El adversary intenta romper el cambio con tests (una ronda)"]
+    I --> A
+    A -->|"BROKEN"| F["Quien implementó arregla la causa y repite init.sh"]
+    A -->|"NOT_BROKEN, small o medium"| G2{"⏸ ¿Apruebas el cambio?"}
+    A -->|"NOT_BROKEN, large"| V["El reviewer emite su veredicto"]
+    F -->|"small o medium"| G2
+    F -->|"large"| V
     V -->|"CHANGES_REQUESTED (máximo 3 rondas)"| I
-    V -->|"APPROVED"| G2{"⏸ ¿Apruebas el cambio?"}
-    I -->|"medium"| G2
-    L --> G2
+    V -->|"APPROVED"| G2
     G2 -->|"pides cambios, small"| L
     G2 -->|"pides cambios, medium o large"| I
     G2 -->|"aprobado"| D["done, con su fecha de cierre"]
@@ -327,6 +349,10 @@ contigo que lo es, el implementer lo hace, el leader ejecuta `./init.sh` y tú
 lo apruebas. El rastro es el commit. Meterlo en la cola costaba más en
 anotaciones que el propio cambio.
 
+**Todo cambio con lógica se intenta romper.** En los tres tamaños, al
+terminar la implementación, el adversary ataca el cambio con propiedades y
+bordes, y lo que rompe se arregla antes de tu aprobación.
+
 En ningún tamaño se levanta por defecto la aplicación, una base de datos o un
 navegador: solo si algo no se puede comprobar de otra forma y el plan o el
 spec lo justifica. La tabla completa está en
@@ -336,7 +362,7 @@ spec lo justifica. La tabla completa está en
 |---|---|
 | `pending` | En la cola. Si tiene su plan escrito, espera tu aprobación (`init.sh` lo dice). |
 | `spec_ready` | Solo en `large`: el spec espera tu aprobación. No se toca código. |
-| `in_progress` | Aprobada: se implementa (y se revisa, si es `large`), o el cambio espera tu aprobación final. |
+| `in_progress` | Aprobada: se implementa, se intenta romper (y se revisa, si es `large`), o el cambio espera tu aprobación final. |
 | `done` | Aprobada por ti, con su fecha `closed`. |
 | `blocked` | Atascada. El motivo está en `progress/current.md`. |
 
@@ -422,7 +448,8 @@ El leader pasa la feature a `in_progress`. Quién programa depende del tamaño:
 
 Quien programa hace lo que dicen el plan o el spec, y nada más:
 
-- escribe los tests que nombran (uno por regla y su borde) y ninguno más;
+- escribe los tests que nombran (uno por regla y su borde, y la propiedad
+  de una regla que vale para toda entrada) y ninguno más;
 - mientras trabaja, solo ejecuta sus tests; al final, `./init.sh` una vez,
   que deja anotado qué código comprobó para que nadie tenga que repetirlo;
 - si algo le obliga a salirse del plan, para: no improvisa diseño.
@@ -437,7 +464,35 @@ El informe del implementer cabe en unas líneas. El de muestra
 - Notas: notas creadas seguidas comparten `created_at`; los tests de orden fijan la fecha
 ```
 
-### 5. Revisión (solo en `large`, o si la pides)
+### 5. Adversary: el cambio se intenta romper
+
+Quien escribe un cambio lo prueba con los casos que imaginó al escribirlo.
+Por eso, en cuanto una feature `small`, `medium` o `large` está implementada
+y verificada, el leader lanza al adversary, con un modelo distinto del que
+escribió el código: otro modelo falla en otros sitios.
+
+- **Ataca la intención, no el código.** Antes de leer la implementación
+  escribe qué promete el cambio, una línea por regla. El resultado que espera
+  cada test sale de ahí, nunca de ejecutar el código ni de copiar su fórmula.
+- **Primero, propiedades.** Para cada regla que vale para toda entrada (un
+  cálculo, un redondeo, una ida y vuelta de escribir y leer), un test con
+  entradas generadas. Después, los bordes que una propiedad no cubre.
+- **Solo cuenta lo que demuestra un test en rojo.** Sin test que falle no hay
+  hallazgo: no informa de sospechas, ni del estilo, ni de la estructura.
+- **Solo escribe tests** (se lo impone H1). Por cada fallo deja su caso
+  mínimo; lo que escribió para explorar y no falló, lo borra.
+
+Con `NOT_BROKEN`, el código queda como estaba y la verificación sigue
+valiendo. Con `BROKEN`, quien implementó arregla la causa y repite
+`./init.sh`. Los tests del adversary no se cambian ni se saltan: si alguno
+pide algo que el plan no pide, decides tú. Es una sola ronda; hay otra solo
+si el arreglo cambió una interfaz pública o si la pides.
+
+No hace el trabajo del reviewer: el adversary ejecuta y busca la entrada que
+falla; el reviewer lee y comprueba el cambio contra el spec y las reglas del
+proyecto, y los tests del adversary son parte de lo que revisa.
+
+### 6. Revisión (solo en `large`, o si la pides)
 
 El reviewer lee el diff real, no solo el informe, y comprueba que cada
 requisito se cumple y tiene su test, que la verificación completa sigue en
@@ -451,14 +506,14 @@ Con `CHANGES_REQUESTED`, el implementer corrige y se revisa otra vez, como
 máximo tres rondas. Si la tercera no termina en `APPROVED`, el leader para y
 te explica por qué no se avanza y qué opciones hay.
 
-### 6. Segunda puerta: apruebas el cambio
+### 7. Segunda puerta: apruebas el cambio
 
 El leader **para** y te resume lo necesario para decidir sin abrir archivos:
-qué cambió (`git diff --stat`), cómo se verificó (`init.sh`), los hallazgos
-del reviewer si los hubo y lo que quedó fuera. Quien cierra la feature eres
-tú.
+qué cambió (`git diff --stat`), cómo se verificó (`init.sh`), lo que rompió
+el adversary y cómo se arregló, los hallazgos del reviewer si los hubo y lo
+que quedó fuera. Quien cierra la feature eres tú.
 
-### 7. Cierre
+### 8. Cierre
 
 Cuando respondes «aprobado», el leader:
 
@@ -482,7 +537,8 @@ interrumpida se retoma sin perder nada.
 |---|---|
 | `pending` sin plan | Comprueba que el proyecto está preparado, te entrevista y escribe el plan, o lanza al spec_author |
 | `pending` con su plan escrito, o `spec_ready` | Espera tu aprobación |
-| `in_progress` con su informe del implementer, o una `small` ya verificada | Espera tu aprobación final (o, si es `large`, lanza la revisión) |
+| `in_progress` con su informe del implementer, o una `small` ya verificada | Lanza al adversary |
+| `in_progress` con el informe del adversary | Si rompió algo, hace que se arregle. Después espera tu aprobación final (o, si es `large`, lanza la revisión) |
 | `in_progress` sin informe ni verificación | La sesión se cortó: te pregunta si sigue o lo deja |
 
 ## La memoria del proyecto
@@ -499,9 +555,9 @@ contexto en cada feature.
 | [`progress/current.md`](progress/current.md) | La feature en curso: tamaño, estado, decisiones, plan y diseño | leader e implementer |
 | [`progress/pending.md`](progress/pending.md) | Decisiones que esperan por ti (`Q<n>`) y deuda (`D<n>`) | leader, cuando hace falta |
 | [`docs/brief.md`](docs/brief.md) | Para qué existe el proyecto y qué no debe hacer | leader y spec_author |
-| `docs/architecture.md`, `docs/conventions.md` y `docs/verification.md` | Las reglas del proyecto | implementer, reviewer y spec_author |
+| `docs/architecture.md`, `docs/conventions.md` y `docs/verification.md` | Las reglas del proyecto | implementer, adversary, reviewer y spec_author |
 | [`docs/lessons.md`](docs/lessons.md) | Trampas, callejones sin salida y decisiones que no se reabren, en una o dos líneas cada una | Todos, antes de «arreglar» algo raro |
-| `specs/<feature>/spec.md` e informes | El spec de cada feature `large` y los informes de cada feature | implementer, reviewer y leader, mientras está abierta |
+| `specs/<feature>/spec.md` e informes | El spec de cada feature `large` y los informes de cada feature | implementer, adversary, reviewer y leader, mientras está abierta |
 | [`docs/project-setup.md`](docs/project-setup.md), [`docs/ui-review.md`](docs/ui-review.md) y [`docs/graphify.md`](docs/graphify.md) | Guías de uso puntual | Solo cuando hacen falta |
 | `docs/example/`, `specs/example/` y `progress/example/` | El proyecto de muestra | Solo en una feature de ejemplo |
 
@@ -529,7 +585,8 @@ leía.
   cuando la feature dejó una trampa, un callejón sin salida o una decisión
   que alguien podría reabrir sin saberlo.
 - **Solo el leader escribe la memoria del proyecto.** Los demás aportan: el
-  implementer, sus notas; el reviewer, sus hallazgos.
+  implementer, sus notas; el adversary, lo que rompió; el reviewer, sus
+  hallazgos.
 - **Lo que se puede comprobar no se apunta: se codifica.** Una regla que un
   chequeo puede comprobar sin juicio va a `lint.sh` o `init.sh`, no a una
   lección ni a un doc.
@@ -554,7 +611,7 @@ Las reglas del proyecto son cinco archivos: `docs/brief.md`,
 | Archivo | Qué fija |
 |---|---|
 | [`docs/architecture.md`](docs/architecture.md) | Principios (los tres primeros son obligatorios: qué capa puede importar a cuál, dónde se valida lo que entra de fuera, y construir solo lo que pide el plan o el spec), stack, carpetas con una tabla de «dónde va cada cosa nueva», flujo de datos y qué no hacer |
-| [`docs/conventions.md`](docs/conventions.md) | Estilo y formateador, nombres, estructura de cada archivo, tests (cuántos y cómo se nombran), errores y comentarios |
+| [`docs/conventions.md`](docs/conventions.md) | Estilo y formateador, nombres, estructura de cada archivo, tests (cuántos, cómo se nombran y cómo se escribe una propiedad), errores y comentarios |
 | [`docs/verification.md`](docs/verification.md) | Qué se verifica según el tamaño (igual en todos los proyectos), los niveles de test con sus comandos, el recorrido manual (excepcional), prácticas que no cuentan como verificación y trampas del entorno con el error literal |
 
 La frase clave está en `architecture.md`: **«Si no está aquí, no es un
@@ -675,7 +732,7 @@ Los de este repositorio están en
 
 | Hook | Cuándo salta | Qué hace | ¿Bloquea? |
 |---|---|---|---|
-| H1 Escritura protegida | Antes de `Edit` o `Write` | En `src/` y `tests/` solo escriben el implementer y, mientras hay una feature `small` en `in_progress`, el leader | Sí |
+| H1 Escritura protegida | Antes de `Edit` o `Write` | En `src/` y `tests/` solo escriben el implementer, el adversary (solo en `tests/`) y, mientras hay una feature `small` en `in_progress`, el leader | Sí |
 | Estado al iniciar | Al iniciar, reanudar, limpiar o compactar la sesión | Le pasa al leader el resultado de `init.sh --status` | No |
 | Validación al terminar | Al final de cada turno del leader | Ejecuta `init.sh --check`; si falla, el leader no puede terminar | Sí, una vez |
 
@@ -808,9 +865,10 @@ Antes de tu primera feature, el leader prepara el proyecto contigo, según
 3. **Comandos de tu stack.** Si no usas Python, hay que cambiar el comando de
    tests en `init.sh` (sección 4) y los permisos de `.claude/settings.json`;
    si tu código no está en `src/` y `tests/`, también las carpetas que vigila
-   H1. Además acordáis el análisis estático (tu linter y lo que deba
-   comprobarse sin juicio) y el leader lo escribe en el bloque «Proyecto» de
-   `lint.sh`.
+   H1 y los archivos de test que deja escribir al adversary. Además acordáis
+   el análisis estático (tu linter y lo que deba comprobarse sin juicio), que
+   el leader escribe en el bloque «Proyecto» de `lint.sh`, y la librería de
+   tests de propiedades de tu stack.
 4. **Retirar el ejemplo**, cuando toque (abajo).
 
 ### Retirar el ejemplo
@@ -842,9 +900,10 @@ deshacer la retirada si algo sale mal.
 | 5 | Plan o spec | El leader escribe el plan (`small`, `medium`) o el spec_author el spec (`large`) | `current.md` o `specs/<feature>/spec.md` |
 | 6 | ⏸ Primera puerta | Apruebas el plan o el spec | — |
 | 7 | Implementación | Lo que dice el plan, con sus tests; al final, `init.sh` | leader (`small`) o implementer, H1, `lint.sh` |
-| 8 | Revisión (solo `large`) | Contra el spec y los docs, en tres rondas como máximo | reviewer |
-| 9 | ⏸ Segunda puerta | El leader te resume el cambio y tú lo apruebas | — |
-| 10 | Cierre | Deuda y, si la hay, una lección; `init.sh --close` pone la fecha de cierre | `pending.md`, `lessons.md`, `feature_list.json` |
+| 8 | Adversary | Intenta romper el cambio con tests; lo que rompe se arregla | adversary, H1 |
+| 9 | Revisión (solo `large`) | Contra el spec y los docs, en tres rondas como máximo | reviewer |
+| 10 | ⏸ Segunda puerta | El leader te resume el cambio y tú lo apruebas | — |
+| 11 | Cierre | Deuda y, si la hay, una lección; `init.sh --close` pone la fecha de cierre | `pending.md`, `lessons.md`, `feature_list.json` |
 | — | Al final de cada turno | `init.sh --check` | hook de fin de turno |
 
 ### Tu papel
@@ -878,9 +937,10 @@ conduce el leader.
 │   └── ui-review.md       # Cómo revisar una interfaz web (excepcional)
 ├── .claude/
 │   ├── settings.json      # Agente principal, hooks y permisos
-│   ├── agents/            # leader, implementer, spec_author, reviewer
+│   ├── agents/            # leader, implementer, adversary, spec_author, reviewer
 │   ├── boundary-discipline/ # Original del principio de fronteras (no es una skill)
 │   ├── encode-lessons/    # Original del principio de codificar lecciones (no es una skill)
+│   ├── interrogate/       # Originales en que se basa el adversary (no son skills)
 │   ├── skills/            # grilling, grill-me, playwright-cli, chrome-devtools-cli
 │   └── yagni/             # Originales del principio YAGNI (no son skills)
 ├── src/                   # Código de la aplicación (al principio, el del ejemplo)
@@ -904,6 +964,9 @@ conduce el leader.
   y el historial es git.
 - **Separación de poderes**: quien escribe algo no lo aprueba, y la última
   palabra es tuya.
+- **Todo cambio con lógica se intenta romper**: lo ataca otro agente, con
+  otro modelo, y solo cuenta lo que demuestra un test en rojo. Un chequeo que
+  nunca se ha visto fallar no prueba nada.
 - **Lo razonado no se paga dos veces**: quien diseña un cambio pequeño lo
   implementa; en los demás, el diseño viaja escrito a quien programa; y la
   verificación completa se ejecuta una vez.
@@ -940,6 +1003,10 @@ conduce el leader.
   se basa en las skills `principle-subtract-before-you-add` y
   `principle-laziness-protocol` de pstack (MIT, Lauren Tan). Los originales
   están en `.claude/yagni/`.
+- El agente `adversary` se basa en las skills `interrogate`,
+  `create-formal-verification-skill` y
+  `principle-test-behavior-not-implementation` de pstack (MIT, Lauren Tan).
+  Los originales están en `.claude/interrogate/`.
 - Versiones anteriores incluían la guía de revisión `code-reviewer.md` de
   [obra/superpowers](https://github.com/obra/superpowers) (MIT, Jesse
   Vincent); se retiró al simplificar el reviewer.

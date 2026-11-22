@@ -58,6 +58,10 @@ No hay interfaz web: el reviewer no abre el navegador en estas features.
 - ❌ `mock` del filesystem. → usa `tempfile.TemporaryDirectory()` real (lo
   comprueba `lint.sh`).
 - ❌ Marcar la feature como `done` sin pasar `./init.sh`.
+- ❌ Cambiar o saltar un test del adversary para que pase. → se arregla la
+  causa; si pide algo que el plan no pide, decide el humano.
+- ❌ Una propiedad cuyo resultado esperado se calcula con el código que
+  prueba. → sale de la regla.
 
 ## Trampas del entorno
 
